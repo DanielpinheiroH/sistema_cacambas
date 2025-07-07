@@ -1,35 +1,36 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import customtkinter as ctk
+from tkinter import messagebox
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from ..database import SessionLocal
-from ..models import Cliente, Cacamba, Aluguel
-
-import os
+from app.database import SessionLocal
+from app.models import Cliente, Cacamba, Aluguel
 from reportlab.pdfgen import canvas
+import os
 
 def abrir_tela_locacao():
-    janela = tk.Toplevel()
+    janela = ctk.CTkToplevel()
     janela.title("Nova Locação")
-    janela.geometry("500x550")
+    janela.geometry("550x600")
+    janela.resizable(False, False)
 
-    # ----- CAMPOS DO CLIENTE -----
-    ttk.Label(janela, text="CPF/CNPJ do Cliente:").pack()
-    entry_cpf = ttk.Entry(janela)
-    entry_cpf.pack()
+    frame = ctk.CTkFrame(janela, corner_radius=10)
+    frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-    ttk.Label(janela, text="Nome:").pack()
-    entry_nome = ttk.Entry(janela)
-    entry_nome.pack()
+    ctk.CTkLabel(frame, text="Nova Locação", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
-    ttk.Label(janela, text="Telefone:").pack()
-    entry_telefone = ttk.Entry(janela)
-    entry_telefone.pack()
+    # CAMPOS DO CLIENTE
+    entry_cpf = ctk.CTkEntry(frame, placeholder_text="CPF/CNPJ do Cliente", width=400)
+    entry_cpf.pack(pady=5)
 
-    ttk.Label(janela, text="Endereço:").pack()
-    entry_endereco = ttk.Entry(janela)
-    entry_endereco.pack()
+    entry_nome = ctk.CTkEntry(frame, placeholder_text="Nome", width=400)
+    entry_nome.pack(pady=5)
+
+    entry_telefone = ctk.CTkEntry(frame, placeholder_text="Telefone", width=400)
+    entry_telefone.pack(pady=5)
+
+    entry_endereco = ctk.CTkEntry(frame, placeholder_text="Endereço", width=400)
+    entry_endereco.pack(pady=5)
 
     def buscar_cliente():
         cpf = entry_cpf.get().strip()
@@ -42,37 +43,36 @@ def abrir_tela_locacao():
         db.close()
 
         if cliente:
-            entry_nome.delete(0, tk.END)
+            entry_nome.delete(0, "end")
             entry_nome.insert(0, cliente.nome)
-            entry_telefone.delete(0, tk.END)
+            entry_telefone.delete(0, "end")
             entry_telefone.insert(0, cliente.telefone)
-            entry_endereco.delete(0, tk.END)
+            entry_endereco.delete(0, "end")
             entry_endereco.insert(0, cliente.endereco)
             messagebox.showinfo("Cliente encontrado", "Cliente preenchido automaticamente.")
         else:
             messagebox.showinfo("Não encontrado", "Cliente não encontrado. Preencha os dados abaixo.")
 
-    ttk.Button(janela, text="🔍 Buscar Cliente", command=buscar_cliente).pack(pady=5)
+    ctk.CTkButton(frame, text="🔍 Buscar Cliente", command=buscar_cliente).pack(pady=8)
 
-    # ----- SELEÇÃO DE CAÇAMBAS -----
+    # CAÇAMBAS DISPONÍVEIS
     db = SessionLocal()
     cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
     db.close()
 
-    ttk.Label(janela, text="Selecionar Caçamba:").pack()
-    combo_cacamba = ttk.Combobox(janela, values=[f"{c.id} - {c.identificacao}" for c in cacambas])
-    combo_cacamba.pack()
+    combo_cacamba = ctk.CTkOptionMenu(frame, values=[f"{c.id} - {c.identificacao}" for c in cacambas])
+    combo_cacamba.pack(pady=10)
+    combo_cacamba.set("Selecione a caçamba")
 
-    ttk.Label(janela, text="Data de Devolução (dd/mm/aaaa):").pack()
-    entry_data_fim = ttk.Entry(janela)
-    entry_data_fim.pack()
+    entry_data_fim = ctk.CTkEntry(frame, placeholder_text="Data de Devolução (dd/mm/aaaa)", width=400)
+    entry_data_fim.pack(pady=5)
 
     def gerar_recibo_pdf(cliente, aluguel, cacamba):
-        recibo_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'recibos')
+        recibo_dir = os.path.join(os.getcwd(), 'recibos')
         os.makedirs(recibo_dir, exist_ok=True)
 
         nome_formatado = cliente.nome.strip().lower().replace(" ", "-")
-        nome_arquivo = f"recibo_{nome_formatado}.pdf"
+        nome_arquivo = f"recibo_{nome_formatado}_{aluguel.id}.pdf"
         caminho = os.path.join(recibo_dir, nome_arquivo)
 
         c = canvas.Canvas(caminho)
@@ -142,4 +142,4 @@ def abrir_tela_locacao():
         finally:
             db.close()
 
-    ttk.Button(janela, text="✅ Confirmar Aluguel", command=confirmar_locacao).pack(pady=20)
+    ctk.CTkButton(frame, text="✅ Confirmar Aluguel", command=confirmar_locacao, width=250).pack(pady=20)

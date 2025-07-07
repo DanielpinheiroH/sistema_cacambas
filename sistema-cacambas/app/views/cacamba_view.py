@@ -1,38 +1,48 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import customtkinter as ctk
+from tkinter import messagebox
 from sqlalchemy.exc import SQLAlchemyError
-from ..database import SessionLocal
-from ..models import Cacamba
+from app.database import SessionLocal
+from app.models import Cacamba
 
 def abrir_tela_cacamba():
-    janela = tk.Toplevel()
-    janela.title("Gerenciar Caçambas")
-    janela.geometry("400x300")
+    janela = ctk.CTkToplevel()
+    janela.title("Cadastro de Caçamba")
+    janela.geometry("500x350")
+    janela.resizable(False, False)
 
-    # Campos
-    ttk.Label(janela, text="Identificação:").pack()
-    entry_id = ttk.Entry(janela)
-    entry_id.pack()
+    frame = ctk.CTkFrame(janela, corner_radius=10)
+    frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-    ttk.Label(janela, text="Localização atual:").pack()
-    entry_local = ttk.Entry(janela)
-    entry_local.pack()
+    ctk.CTkLabel(frame, text="Cadastro de Caçamba", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
-    var_disponivel = tk.BooleanVar(value=True)
-    chk_disponivel = ttk.Checkbutton(janela, text="Disponível", variable=var_disponivel)
-    chk_disponivel.pack(pady=5)
+    entry_id = ctk.CTkEntry(frame, placeholder_text="Identificação (ex: CMB-001)", width=400)
+    entry_id.pack(pady=8)
+
+    entry_local = ctk.CTkEntry(frame, placeholder_text="Localização atual", width=400)
+    entry_local.pack(pady=8)
+
+    var_disponivel = ctk.BooleanVar(value=True)
+    chk_disponivel = ctk.CTkCheckBox(frame, text="Disponível", variable=var_disponivel)
+    chk_disponivel.pack(pady=10)
 
     def salvar_cacamba():
-        identificacao = entry_id.get()
-        localizacao = entry_local.get()
+        identificacao = entry_id.get().strip()
+        localizacao = entry_local.get().strip()
         disponivel = var_disponivel.get()
 
-        if not identificacao.strip():
+        if not identificacao:
             messagebox.showerror("Erro", "A identificação é obrigatória.")
             return
 
         try:
             db = SessionLocal()
+
+            # Verifica duplicidade
+            if db.query(Cacamba).filter_by(identificacao=identificacao).first():
+                messagebox.showerror("Erro", "Já existe uma caçamba com essa identificação.")
+                db.close()
+                return
+
             nova = Cacamba(
                 identificacao=identificacao,
                 localizacao_atual=localizacao,
@@ -41,9 +51,10 @@ def abrir_tela_cacamba():
             db.add(nova)
             db.commit()
             db.close()
+
             messagebox.showinfo("Sucesso", "Caçamba cadastrada com sucesso!")
             janela.destroy()
         except SQLAlchemyError as e:
             messagebox.showerror("Erro", f"Erro ao salvar no banco: {e}")
 
-    ttk.Button(janela, text="Salvar", command=salvar_cacamba).pack(pady=10)
+    ctk.CTkButton(frame, text="Salvar Caçamba", command=salvar_cacamba, width=200).pack(pady=15)
