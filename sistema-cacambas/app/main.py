@@ -1,9 +1,15 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SISTEMA DE CAÇAMBAS - TELA PRINCIPAL
+# Desenvolvido com CustomTkinter + SQLAlchemy
+# Código refatorado e estilizado com boas práticas profissionais
+# ═══════════════════════════════════════════════════════════════════════════════
+
 import customtkinter as ctk
 from datetime import datetime, timedelta
+
 from .database import init_db, SessionLocal
 from .models import Cacamba, Aluguel
 
-# Agora importando funções que constroem telas (não abrem janelas)
 from .views.cliente_view import construir_tela_cliente
 from .views.cacamba_view import construir_tela_cacamba
 from .views.aluguel_view import construir_tela_aluguel, construir_tela_devolucao
@@ -11,37 +17,56 @@ from .views.locacao_view import construir_tela_locacao
 from .views.historico_view import construir_tela_historico
 from app.views.consulta_cliente_view import construir_tela_consulta_clientes
 
-telas = {}  # Dicionário para armazenar as telas
 
-def mostrar_tela(nome):
-    """Traz a tela especificada para frente"""
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURAÇÃO INICIAL E TELA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+telas = {}  # Dicionário que armazena todas as views
+
+
+def mostrar_tela(nome: str) -> None:
+    """Eleva a tela desejada para o topo."""
     if nome in telas:
         telas[nome].tkraise()
 
-def mostrar_dashboard(frame):
-    """Atualiza o conteúdo do dashboard"""
+
+def mostrar_dashboard(frame: ctk.CTkFrame) -> None:
+    """Atualiza e exibe os dados do dashboard principal."""
     for widget in frame.winfo_children():
         widget.destroy()
 
-    db = SessionLocal()
-    total_disponiveis = db.query(Cacamba).filter_by(disponivel=True).count()
-    total_alugadas = db.query(Cacamba).filter_by(disponivel=False).count()
-    hoje = datetime.today()
-    limite = hoje + timedelta(days=2)
-    vencendo = db.query(Aluguel).filter(
-        Aluguel.encerrado == False,
-        Aluguel.data_fim <= limite
-    ).count()
-    db.close()
+    with SessionLocal() as db:
+        total_disponiveis = db.query(Cacamba).filter_by(disponivel=True).count()
+        total_alugadas = db.query(Cacamba).filter_by(disponivel=False).count()
 
+        hoje = datetime.today()
+        vencendo = db.query(Aluguel).filter(
+            Aluguel.encerrado.is_(False),
+            Aluguel.data_fim <= hoje + timedelta(days=2)
+        ).count()
+
+    # UI
     ctk.CTkLabel(frame, text="📊 Dashboard", font=("Segoe UI", 20, "bold")).pack(pady=10)
     ctk.CTkLabel(frame, text=f"🚛 Caçambas Alugadas: {total_alugadas}", font=("Segoe UI", 14)).pack(pady=5)
     ctk.CTkLabel(frame, text=f"✅ Caçambas Disponíveis: {total_disponiveis}", font=("Segoe UI", 14)).pack(pady=5)
-    ctk.CTkLabel(frame, text=f"⚠️ Vencendo em até 2 dias: {vencendo}", font=("Segoe UI", 14), text_color="red").pack(pady=5)
+    ctk.CTkLabel(
+        frame,
+        text=f"⚠️ Vencendo em até 2 dias: {vencendo}",
+        font=("Segoe UI", 14),
+        text_color="red"
+    ).pack(pady=5)
 
-def main():
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FUNÇÃO PRINCIPAL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main() -> None:
+    """Ponto de entrada do sistema."""
     init_db()
 
+    # Configuração visual
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
 
@@ -49,23 +74,24 @@ def main():
     root.title("Sistema de Caçambas - Menu Principal")
     root.geometry("440x650")
 
-    # Container principal para todas as telas
+    # Container principal
     container = ctk.CTkFrame(root)
     container.pack(expand=True, fill="both")
 
-    # Construção das telas
-    telas["dashboard"] = ctk.CTkFrame(container)
+    # Construção e registro das telas
+    telas.update({
+        "dashboard":           ctk.CTkFrame(container),
+        "cliente":             construir_tela_cliente(container),
+        "cacamba":             construir_tela_cacamba(container),
+        "aluguel":             construir_tela_aluguel(container),
+        "devolucao":           construir_tela_devolucao(container),
+        "locacao":             construir_tela_locacao(container),
+        "historico":           construir_tela_historico(container),
+        "consulta_clientes":   construir_tela_consulta_clientes(container),
+    })
+
     mostrar_dashboard(telas["dashboard"])
 
-    telas["cliente"] = construir_tela_cliente(container)
-    telas["cacamba"] = construir_tela_cacamba(container)
-    telas["aluguel"] = construir_tela_aluguel(container)
-    telas["devolucao"] = construir_tela_devolucao(container)
-    telas["locacao"] = construir_tela_locacao(container)
-    telas["historico"] = construir_tela_historico(container)
-    telas["consulta_clientes"] = construir_tela_consulta_clientes(container)
-
-    # Posicionamento de todas as telas no mesmo local
     for tela in telas.values():
         tela.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -73,20 +99,29 @@ def main():
     botoes_frame = ctk.CTkFrame(root, corner_radius=12)
     botoes_frame.pack(pady=10, padx=20, fill="x")
 
-    # Botões de navegação
-    ctk.CTkButton(botoes_frame, text="🔄 Atualizar Dashboard", command=lambda: mostrar_dashboard(telas["dashboard"]), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📊 Ir para Dashboard", command=lambda: mostrar_tela("dashboard"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📝 Nova Locação", command=lambda: mostrar_tela("locacao"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📋 Novo Cliente", command=lambda: mostrar_tela("cliente"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="🚛 Caçambas", command=lambda: mostrar_tela("cacamba"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📆 Aluguéis", command=lambda: mostrar_tela("aluguel"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="↩️ Devoluções", command=lambda: mostrar_tela("devolucao"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📄 Histórico", command=lambda: mostrar_tela("historico"), width=250).pack(pady=5)
-    ctk.CTkButton(botoes_frame, text="📋 Clientes (Consulta)", command=lambda: mostrar_tela("consulta_clientes"), width=250).pack(pady=5)
+    botoes = [
+        ("🔄 Atualizar Dashboard",    lambda: mostrar_dashboard(telas["dashboard"])),
+        ("📊 Ir para Dashboard",      lambda: mostrar_tela("dashboard")),
+        ("📝 Nova Locação",           lambda: mostrar_tela("locacao")),
+        ("📋 Novo Cliente",           lambda: mostrar_tela("cliente")),
+        ("🚛 Caçambas",               lambda: mostrar_tela("cacamba")),
+        ("📆 Aluguéis",               lambda: mostrar_tela("aluguel")),
+        ("↩️ Devoluções",             lambda: mostrar_tela("devolucao")),
+        ("📄 Histórico",              lambda: mostrar_tela("historico")),
+        ("📋 Clientes (Consulta)",    lambda: mostrar_tela("consulta_clientes")),
+    ]
 
-    # Exibe inicialmente o dashboard
+    for texto, comando in botoes:
+        ctk.CTkButton(botoes_frame, text=texto, command=comando, width=250).pack(pady=5)
+
+    # Exibir primeira tela
     mostrar_tela("dashboard")
     root.mainloop()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXECUÇÃO DIRETA
+# ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     main()

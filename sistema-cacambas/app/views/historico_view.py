@@ -1,65 +1,94 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from datetime import datetime
-from sqlalchemy.orm import joinedload
-from app.database import SessionLocal
-from app.models import Aluguel, Cliente, Cacamba
-from reportlab.pdfgen import canvas
+from tkinter import Canvas
 import os
 
-def construir_tela_historico(pai):
-    frame = ctk.CTkFrame(pai, corner_radius=10)
-    ctk.CTkLabel(frame, text="Histórico de Aluguéis", font=("Segoe UI", 20, "bold")).pack(pady=10)
+from sqlalchemy.orm import joinedload
+from app.database import SessionLocal
+from app.models import Aluguel
 
-    filtro_var = ctk.StringVar(value="Todos")
-    ctk.CTkOptionMenu(
+def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
+    frame = ctk.CTkFrame(pai, corner_radius=12)
+
+    # ─── Título ─────────────────────────────────────────────────────────
+    ctk.CTkLabel(
         frame,
+        text="📜 Histórico de Aluguéis",
+        font=("Segoe UI", 26, "bold"),
+        text_color="#111827"
+    ).pack(pady=(20, 10))
+
+    # ─── Filtro ─────────────────────────────────────────────────────────
+    filtro_var = ctk.StringVar(value="Todos")
+
+    filtro_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    filtro_frame.pack(pady=(0, 10))
+
+    ctk.CTkLabel(
+        filtro_frame,
+        text="🔎 Status:",
+        font=("Segoe UI", 14)
+    ).pack(side="left", padx=(0, 8))
+
+    filtro_menu = ctk.CTkOptionMenu(
+        filtro_frame,
         variable=filtro_var,
         values=["Todos", "Ativos", "Encerrados"],
+        width=160,
         command=lambda _: carregar_alugueis()
-    ).pack(pady=5)
+    )
+    filtro_menu.pack(side="left")
 
-    lista = ctk.CTkTextbox(frame, height=300, width=650, font=("Segoe UI", 12))
+    # ─── Lista de aluguéis ──────────────────────────────────────────────
+    lista = ctk.CTkTextbox(
+        frame,
+        height=320,
+        width=720,
+        font=("Segoe UI", 13),
+        corner_radius=10,
+        border_width=1.5,
+        border_color="#E5E7EB"
+    )
     lista.pack(pady=10)
 
-    def carregar_alugueis():
+    def carregar_alugueis() -> None:
         lista.delete("1.0", "end")
-        db = SessionLocal()
 
-        query = db.query(Aluguel).options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
+        with SessionLocal() as db:
+            query = db.query(Aluguel).options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
 
-        if filtro_var.get() == "Ativos":
-            query = query.filter(Aluguel.encerrado == False)
-        elif filtro_var.get() == "Encerrados":
-            query = query.filter(Aluguel.encerrado == True)
+            if filtro_var.get() == "Ativos":
+                query = query.filter(Aluguel.encerrado.is_(False))
+            elif filtro_var.get() == "Encerrados":
+                query = query.filter(Aluguel.encerrado.is_(True))
 
-        alugueis = query.order_by(Aluguel.data_inicio.desc()).all()
-        db.close()
+            alugueis = query.order_by(Aluguel.data_inicio.desc()).all()
 
         if not alugueis:
-            lista.insert("end", "Nenhum aluguel encontrado.\n")
+            lista.insert("end", "⚠️ Nenhum aluguel encontrado.\n")
             return
 
         for aluguel in alugueis:
-            status = "Encerrado ✅" if aluguel.encerrado else "Ativo 🔄"
+            status = "✅ Encerrado" if aluguel.encerrado else "🔄 Ativo"
             texto = (
-                f"ID: {aluguel.id} | Cliente: {aluguel.cliente.nome} | "
-                f"Caçamba: {aluguel.cacamba.identificacao} | "
-                f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')} | "
-                f"Fim: {aluguel.data_fim.strftime('%d/%m/%Y')} | {status}\n"
+                f"📦 ID: {aluguel.id} | Cliente: {aluguel.cliente.nome}\n"
+                f"   🏷️ Caçamba: {aluguel.cacamba.identificacao}\n"
+                f"   📅 Início: {aluguel.data_inicio.strftime('%d/%m/%Y')} | "
+                f"Fim: {aluguel.data_fim.strftime('%d/%m/%Y')} | Status: {status}\n\n"
             )
             lista.insert("end", texto)
 
-    def gerar_recibo_por_id():
+    # ─── Gerar recibo PDF ───────────────────────────────────────────────
+    def gerar_recibo_por_id() -> None:
         id_str = id_entry.get().strip()
         if not id_str.isdigit():
-            messagebox.showerror("Erro", "Informe um ID válido.")
+            messagebox.showerror("Erro", "Informe um ID numérico válido.")
             return
 
-        db = SessionLocal()
-        aluguel = db.query(Aluguel).options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))\
-            .filter(Aluguel.id == int(id_str)).first()
-        db.close()
+        with SessionLocal() as db:
+            aluguel = db.query(Aluguel)\
+                .options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))\
+                .filter(Aluguel.id == int(id_str)).first()
 
         if not aluguel:
             messagebox.showerror("Erro", "Aluguel não encontrado.")
@@ -69,8 +98,9 @@ def construir_tela_historico(pai):
         cacamba = aluguel.cacamba
 
         nome_formatado = cliente.nome.strip().lower().replace(" ", "-")
-        recibo_dir = os.path.join(os.getcwd(), 'recibos')
+        recibo_dir = os.path.join(os.getcwd(), "recibos")
         os.makedirs(recibo_dir, exist_ok=True)
+
         nome_arquivo = f"recibo_{nome_formatado}_{aluguel.id}.pdf"
         caminho = os.path.join(recibo_dir, nome_arquivo)
 
@@ -83,20 +113,44 @@ def construir_tela_historico(pai):
         c.drawString(50, 720, f"Telefone: {cliente.telefone}")
         c.drawString(50, 700, f"Endereço: {cliente.endereco}")
         c.drawString(50, 680, f"Caçamba: {cacamba.identificacao}")
-        c.drawString(50, 660, f"Data de Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
-        c.drawString(50, 640, f"Data de Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
+        c.drawString(50, 660, f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
+        c.drawString(50, 640, f"Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
         c.drawString(50, 620, f"ID do Aluguel: {aluguel.id}")
         c.drawString(50, 580, "Assinatura: ____________________________")
         c.drawString(50, 560, "Data: ____/____/______")
         c.save()
 
-        messagebox.showinfo("Sucesso", f"Recibo salvo em:\n{caminho}")
+        messagebox.showinfo("Sucesso", f"📄 Recibo salvo em:\n{caminho}")
 
-    ctk.CTkLabel(frame, text="Gerar recibo por ID do aluguel:", font=("Segoe UI", 12)).pack()
-    id_entry = ctk.CTkEntry(frame, width=150)
+    # ─── Campo + botão para recibo ───────────────────────────────────────
+    recibo_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    recibo_frame.pack(pady=(10, 10))
+
+    ctk.CTkLabel(
+        recibo_frame,
+        text="🎯 Gerar recibo por ID do aluguel:",
+        font=("Segoe UI", 14, "bold")
+    ).pack(pady=(5, 8))
+
+    id_entry = ctk.CTkEntry(
+        recibo_frame,
+        width=240,
+        placeholder_text="Digite o ID do aluguel"
+    )
     id_entry.pack(pady=5)
-    ctk.CTkButton(frame, text="🧾 Gerar Recibo PDF", command=gerar_recibo_por_id).pack()
+
+    ctk.CTkButton(
+        recibo_frame,
+        text="🧾 Gerar PDF",
+        command=gerar_recibo_por_id,
+        width=220,
+        height=42,
+        font=("Segoe UI", 13, "bold"),
+        fg_color="#2563EB",         # Azul moderno
+        hover_color="#1D4ED8",
+        text_color="white",
+        corner_radius=12
+    ).pack(pady=(10, 10))
 
     carregar_alugueis()
-
     return frame

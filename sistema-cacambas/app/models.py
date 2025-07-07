@@ -10,6 +10,7 @@ class Cliente(Base):
     cpf_cnpj = Column(String, unique=True)  # ✅ novo campo
     telefone = Column(String)
     endereco = Column(String)
+    email = Column(String, unique=True)  # ✅ novo campo
     alugueis = relationship("Aluguel", back_populates="cliente")
 
 class Cacamba(Base):

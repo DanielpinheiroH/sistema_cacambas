@@ -1,38 +1,54 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# NOVA LOCAÇÃO - CADASTRO COM GERADOR DE RECIBO
+# ═══════════════════════════════════════════════════════════════════════════════
+
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
+
 from app.database import SessionLocal
 from app.models import Cliente, Cacamba, Aluguel
 from reportlab.pdfgen import canvas
 import os
 
-def construir_tela_locacao(pai):
-    frame = ctk.CTkFrame(pai, corner_radius=10)
-    ctk.CTkLabel(frame, text="Nova Locação", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
-    # CAMPOS DO CLIENTE
-    entry_cpf = ctk.CTkEntry(frame, placeholder_text="CPF/CNPJ do Cliente", width=400)
+def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
+    frame = ctk.CTkFrame(pai, corner_radius=10)
+
+    # ─── Título ─────────────────────────────────────────────────────────
+    ctk.CTkLabel(
+        frame,
+        text="📝 Nova Locação",
+        font=("Segoe UI", 20, "bold")
+    ).pack(pady=20)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # BLOCO 1 — DADOS DO CLIENTE
+    # ═══════════════════════════════════════════════════════════════════
+
+    entry_cpf = ctk.CTkEntry(frame, placeholder_text="📄 CPF/CNPJ do Cliente", width=400)
     entry_cpf.pack(pady=5)
 
-    entry_nome = ctk.CTkEntry(frame, placeholder_text="Nome", width=400)
+    entry_nome = ctk.CTkEntry(frame, placeholder_text="👤 Nome completo", width=400)
     entry_nome.pack(pady=5)
 
-    entry_telefone = ctk.CTkEntry(frame, placeholder_text="Telefone", width=400)
+    entry_telefone = ctk.CTkEntry(frame, placeholder_text="📞 Telefone", width=400)
     entry_telefone.pack(pady=5)
 
-    entry_endereco = ctk.CTkEntry(frame, placeholder_text="Endereço", width=400)
+    entry_endereco = ctk.CTkEntry(frame, placeholder_text="🏠 Endereço", width=400)
     entry_endereco.pack(pady=5)
 
+    # ─── Botão de busca automática ─────────────────────────────────────
     def buscar_cliente():
         cpf = entry_cpf.get().strip()
         if not cpf:
             messagebox.showwarning("Aviso", "Informe o CPF/CNPJ para buscar.")
             return
 
-        db = SessionLocal()
-        cliente = db.query(Cliente).filter(Cliente.cpf_cnpj == cpf).first()
-        db.close()
+        with SessionLocal() as db:
+            cliente = db.query(Cliente).filter(Cliente.cpf_cnpj == cpf).first()
 
         if cliente:
             entry_nome.delete(0, "end")
@@ -41,17 +57,22 @@ def construir_tela_locacao(pai):
             entry_telefone.insert(0, cliente.telefone)
             entry_endereco.delete(0, "end")
             entry_endereco.insert(0, cliente.endereco)
-            messagebox.showinfo("Cliente encontrado", "Cliente preenchido automaticamente.")
+            messagebox.showinfo("Cliente encontrado", "Dados preenchidos automaticamente.")
         else:
             messagebox.showinfo("Não encontrado", "Cliente não encontrado. Preencha os dados abaixo.")
 
-    ctk.CTkButton(frame, text="🔍 Buscar Cliente", command=buscar_cliente).pack(pady=8)
+    ctk.CTkButton(frame, text="🔍 Buscar Cliente", command=buscar_cliente, width=200).pack(pady=10)
 
-    # CAÇAMBAS DISPONÍVEIS
+    # ═══════════════════════════════════════════════════════════════════
+    # BLOCO 2 — SELEÇÃO DE CAÇAMBA E DATA
+    # ═══════════════════════════════════════════════════════════════════
+
+    combo_cacamba = ctk.CTkOptionMenu(frame, values=["Carregando..."])
+    combo_cacamba.pack(pady=10)
+
     def atualizar_opcoes_cacamba():
-        db = SessionLocal()
-        cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
-        db.close()
+        with SessionLocal() as db:
+            cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
 
         opcoes = [f"{c.id} - {c.identificacao}" for c in cacambas]
         if opcoes:
@@ -61,15 +82,17 @@ def construir_tela_locacao(pai):
             combo_cacamba.configure(values=["Nenhuma disponível"])
             combo_cacamba.set("Nenhuma disponível")
 
-    combo_cacamba = ctk.CTkOptionMenu(frame, values=["Carregando..."])
-    combo_cacamba.pack(pady=10)
     atualizar_opcoes_cacamba()
 
-    entry_data_fim = ctk.CTkEntry(frame, placeholder_text="Data de Devolução (dd/mm/aaaa)", width=400)
+    entry_data_fim = ctk.CTkEntry(frame, placeholder_text="📅 Data de Devolução (dd/mm/aaaa)", width=400)
     entry_data_fim.pack(pady=5)
 
-    def gerar_recibo_pdf(cliente, aluguel, cacamba):
-        recibo_dir = os.path.join(os.getcwd(), 'recibos')
+    # ═══════════════════════════════════════════════════════════════════
+    # FUNÇÃO: GERAÇÃO DE RECIBO
+    # ═══════════════════════════════════════════════════════════════════
+
+    def gerar_recibo_pdf(cliente, aluguel, cacamba) -> str:
+        recibo_dir = os.path.join(os.getcwd(), "recibos")
         os.makedirs(recibo_dir, exist_ok=True)
 
         nome_formatado = cliente.nome.strip().lower().replace(" ", "-")
@@ -85,13 +108,18 @@ def construir_tela_locacao(pai):
         c.drawString(50, 720, f"Telefone: {cliente.telefone}")
         c.drawString(50, 700, f"Endereço: {cliente.endereco}")
         c.drawString(50, 680, f"Caçamba: {cacamba.identificacao}")
-        c.drawString(50, 660, f"Data de Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
-        c.drawString(50, 640, f"Data de Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
+        c.drawString(50, 660, f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
+        c.drawString(50, 640, f"Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
         c.drawString(50, 620, f"ID do Aluguel: {aluguel.id}")
         c.drawString(50, 580, "Assinatura: ____________________________")
         c.drawString(50, 560, "Data: ____/____/______")
         c.save()
+
         return caminho
+
+    # ═══════════════════════════════════════════════════════════════════
+    # AÇÃO FINAL: CONFIRMAR LOCAÇÃO
+    # ═══════════════════════════════════════════════════════════════════
 
     def confirmar_locacao():
         cpf = entry_cpf.get().strip()
@@ -113,44 +141,46 @@ def construir_tela_locacao(pai):
             return
 
         try:
-            db = SessionLocal()
+            with SessionLocal() as db:
+                cliente = db.query(Cliente).filter(Cliente.cpf_cnpj == cpf).first()
+                if not cliente:
+                    cliente = Cliente(nome=nome, cpf_cnpj=cpf, telefone=telefone, endereco=endereco)
+                    db.add(cliente)
+                    db.flush()  # cria ID
 
-            cliente = db.query(Cliente).filter(Cliente.cpf_cnpj == cpf).first()
-            if not cliente:
-                cliente = Cliente(nome=nome, cpf_cnpj=cpf, telefone=telefone, endereco=endereco)
-                db.add(cliente)
-                db.flush()
+                aluguel = Aluguel(
+                    cliente_id=cliente.id,
+                    cacamba_id=int(cacamba_id),
+                    data_fim=data_fim,
+                    encerrado=False
+                )
+                db.add(aluguel)
 
-            aluguel = Aluguel(
-                cliente_id=cliente.id,
-                cacamba_id=int(cacamba_id),
-                data_fim=data_fim,
-                encerrado=False
-            )
-            db.add(aluguel)
+                cacamba = db.query(Cacamba).filter_by(id=int(cacamba_id)).first()
+                cacamba.disponivel = False
 
-            cacamba = db.query(Cacamba).filter_by(id=int(cacamba_id)).first()
-            cacamba.disponivel = False
+                db.commit()
 
-            db.commit()
+                recibo_path = gerar_recibo_pdf(cliente, aluguel, cacamba)
+                messagebox.showinfo("Sucesso", f"✅ Locação registrada com sucesso!\n\n📄 Recibo salvo em:\n{recibo_path}")
 
-            recibo_path = gerar_recibo_pdf(cliente, aluguel, cacamba)
-            messagebox.showinfo("Sucesso", f"Locação registrada!\nRecibo salvo em:\n{recibo_path}")
-
-            # Limpa os campos
-            entry_cpf.delete(0, "end")
-            entry_nome.delete(0, "end")
-            entry_telefone.delete(0, "end")
-            entry_endereco.delete(0, "end")
-            entry_data_fim.delete(0, "end")
-            atualizar_opcoes_cacamba()
+                # Limpa campos
+                entry_cpf.delete(0, "end")
+                entry_nome.delete(0, "end")
+                entry_telefone.delete(0, "end")
+                entry_endereco.delete(0, "end")
+                entry_data_fim.delete(0, "end")
+                atualizar_opcoes_cacamba()
 
         except SQLAlchemyError as e:
-            db.rollback()
             messagebox.showerror("Erro", f"Erro no banco de dados:\n{e}")
-        finally:
-            db.close()
 
-    ctk.CTkButton(frame, text="✅ Confirmar Aluguel", command=confirmar_locacao, width=250).pack(pady=20)
+    # ─── Botão de confirmação ───────────────────────────────────────────
+    ctk.CTkButton(
+        frame,
+        text="✅ Confirmar Aluguel",
+        command=confirmar_locacao,
+        width=250
+    ).pack(pady=20)
 
     return frame
