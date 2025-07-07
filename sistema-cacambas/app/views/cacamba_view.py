@@ -4,14 +4,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.database import SessionLocal
 from app.models import Cacamba
 
-def abrir_tela_cacamba():
-    janela = ctk.CTkToplevel()
-    janela.title("Cadastro de Caçamba")
-    janela.geometry("500x350")
-    janela.resizable(False, False)
-
-    frame = ctk.CTkFrame(janela, corner_radius=10)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
+def construir_tela_cacamba(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
 
     ctk.CTkLabel(frame, text="Cadastro de Caçamba", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
@@ -53,8 +47,15 @@ def abrir_tela_cacamba():
             db.close()
 
             messagebox.showinfo("Sucesso", "Caçamba cadastrada com sucesso!")
-            janela.destroy()
+
+            # Limpa os campos após sucesso
+            entry_id.delete(0, "end")
+            entry_local.delete(0, "end")
+            var_disponivel.set(True)
+
         except SQLAlchemyError as e:
             messagebox.showerror("Erro", f"Erro ao salvar no banco: {e}")
 
     ctk.CTkButton(frame, text="Salvar Caçamba", command=salvar_cacamba, width=200).pack(pady=15)
+
+    return frame

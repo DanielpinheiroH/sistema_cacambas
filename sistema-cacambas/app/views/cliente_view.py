@@ -4,14 +4,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.database import SessionLocal
 from app.models import Cliente
 
-def abrir_tela_cliente():
-    janela = ctk.CTkToplevel()
-    janela.title("Cadastro de Cliente")
-    janela.geometry("500x420")
-    janela.resizable(False, False)
-
-    frame = ctk.CTkFrame(janela, corner_radius=10)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
+def construir_tela_cliente(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
 
     ctk.CTkLabel(frame, text="Cadastro de Cliente", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
@@ -39,7 +33,6 @@ def abrir_tela_cliente():
 
         try:
             db = SessionLocal()
-            # Checa duplicidade
             if db.query(Cliente).filter_by(cpf_cnpj=cpf_cnpj).first():
                 messagebox.showerror("Erro", "Já existe um cliente com esse CPF/CNPJ.")
                 db.close()
@@ -51,9 +44,16 @@ def abrir_tela_cliente():
             db.close()
 
             messagebox.showinfo("Sucesso", "Cliente cadastrado com sucesso!")
-            janela.destroy()
+
+            # Limpa os campos após salvar
+            entry_nome.delete(0, "end")
+            entry_cpf_cnpj.delete(0, "end")
+            entry_telefone.delete(0, "end")
+            entry_endereco.delete(0, "end")
 
         except SQLAlchemyError as e:
             messagebox.showerror("Erro", f"Erro ao salvar no banco: {e}")
 
     ctk.CTkButton(frame, text="Salvar Cliente", command=salvar_cliente, width=200).pack(pady=20)
+
+    return frame

@@ -6,13 +6,10 @@ from app.database import SessionLocal
 from app.models import Cliente, Cacamba, Aluguel
 
 # ---------- TELA DE ALUGUEL ----------
-def abrir_tela_aluguel():
-    janela = ctk.CTkToplevel()
-    janela.title("Registrar Aluguel")
-    janela.geometry("500x400")
+def construir_tela_aluguel(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
 
-    frame = ctk.CTkFrame(janela)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
+    ctk.CTkLabel(frame, text="Registrar Aluguel", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
     db = SessionLocal()
     clientes = db.query(Cliente).all()
@@ -24,12 +21,16 @@ def abrir_tela_aluguel():
     combo_cliente.pack(pady=5)
     if clientes:
         combo_cliente.set(f"{clientes[0].id} - {clientes[0].nome}")
+    else:
+        combo_cliente.set("Nenhum cliente encontrado")
 
     ctk.CTkLabel(frame, text="Caçamba", font=("Segoe UI", 14)).pack()
     combo_cacamba = ctk.CTkOptionMenu(frame, values=[f"{c.id} - {c.identificacao}" for c in cacambas])
     combo_cacamba.pack(pady=5)
     if cacambas:
         combo_cacamba.set(f"{cacambas[0].id} - {cacambas[0].identificacao}")
+    else:
+        combo_cacamba.set("Nenhuma caçamba disponível")
 
     entry_data_fim = ctk.CTkEntry(frame, placeholder_text="Data de Fim (dd/mm/aaaa)", width=300)
     entry_data_fim.pack(pady=10)
@@ -52,20 +53,19 @@ def abrir_tela_aluguel():
             db.close()
 
             messagebox.showinfo("Sucesso", "Aluguel registrado com sucesso!")
-            janela.destroy()
+            entry_data_fim.delete(0, "end")
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao registrar aluguel: {e}")
 
     ctk.CTkButton(frame, text="Salvar Aluguel", command=registrar_aluguel, width=200).pack(pady=20)
 
-# ---------- TELA DE DEVOLUÇÃO ----------
-def abrir_tela_devolucao():
-    janela = ctk.CTkToplevel()
-    janela.title("Registrar Devolução")
-    janela.geometry("600x400")
+    return frame
 
-    frame = ctk.CTkFrame(janela)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
+# ---------- TELA DE DEVOLUÇÃO ----------
+def construir_tela_devolucao(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
+
+    ctk.CTkLabel(frame, text="Registrar Devolução", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
     db = SessionLocal()
     alugueis = db.query(Aluguel).filter_by(encerrado=False)\
@@ -77,8 +77,7 @@ def abrir_tela_devolucao():
         for a in alugueis
     ]
 
-    ctk.CTkLabel(frame, text="Selecione um aluguel para devolver:", font=("Segoe UI", 14)).pack(pady=10)
-    combo = ctk.CTkOptionMenu(frame, values=lista_exibicao)
+    combo = ctk.CTkOptionMenu(frame, values=lista_exibicao if lista_exibicao else ["Nenhum aluguel disponível"])
     combo.pack(pady=10)
     combo.set(lista_exibicao[0] if lista_exibicao else "Nenhum aluguel disponível")
 
@@ -101,8 +100,9 @@ def abrir_tela_devolucao():
             db.close()
 
             messagebox.showinfo("Sucesso", "Devolução registrada com sucesso!")
-            janela.destroy()
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao processar devolução: {e}")
 
     ctk.CTkButton(frame, text="Registrar Devolução", command=confirmar_devolucao, width=250).pack(pady=20)
+
+    return frame

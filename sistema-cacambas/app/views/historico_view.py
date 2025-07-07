@@ -7,15 +7,8 @@ from app.models import Aluguel, Cliente, Cacamba
 from reportlab.pdfgen import canvas
 import os
 
-def abrir_tela_historico():
-    janela = ctk.CTkToplevel()
-    janela.title("Histórico de Aluguéis")
-    janela.geometry("700x500")
-    janela.resizable(False, False)
-
-    frame = ctk.CTkFrame(janela, corner_radius=10)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
-
+def construir_tela_historico(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
     ctk.CTkLabel(frame, text="Histórico de Aluguéis", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
     filtro_var = ctk.StringVar(value="Todos")
@@ -84,7 +77,6 @@ def abrir_tela_historico():
         c = canvas.Canvas(caminho)
         c.setFont("Helvetica-Bold", 14)
         c.drawString(100, 800, "RECIBO DE LOCAÇÃO DE CAÇAMBA")
-
         c.setFont("Helvetica", 12)
         c.drawString(50, 760, f"Cliente: {cliente.nome}")
         c.drawString(50, 740, f"CPF/CNPJ: {cliente.cpf_cnpj}")
@@ -106,3 +98,5 @@ def abrir_tela_historico():
     ctk.CTkButton(frame, text="🧾 Gerar Recibo PDF", command=gerar_recibo_por_id).pack()
 
     carregar_alugueis()
+
+    return frame

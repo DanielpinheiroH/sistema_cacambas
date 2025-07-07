@@ -4,14 +4,8 @@ from app.database import SessionLocal
 from app.models import Cliente, Aluguel, Cacamba
 from datetime import datetime
 
-def abrir_tela_consulta_clientes():
-    janela = ctk.CTkToplevel()
-    janela.title("Consulta de Clientes")
-    janela.geometry("700x500")
-    janela.resizable(False, False)
-
-    frame_principal = ctk.CTkFrame(janela, corner_radius=10)
-    frame_principal.pack(padx=20, pady=20, fill="both", expand=True)
+def construir_tela_consulta_clientes(pai):
+    frame_principal = ctk.CTkFrame(pai, corner_radius=10)
 
     ctk.CTkLabel(frame_principal, text="Clientes Cadastrados", font=("Segoe UI", 18, "bold")).pack(pady=10)
 
@@ -69,3 +63,5 @@ def abrir_tela_consulta_clientes():
         texto_detalhes.configure(state="disabled")
 
     lista_clientes.bind("<ButtonRelease-1>", on_cliente_click)
+
+    return frame_principal

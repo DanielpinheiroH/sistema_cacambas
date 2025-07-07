@@ -1,22 +1,14 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.database import SessionLocal
 from app.models import Cliente, Cacamba, Aluguel
 from reportlab.pdfgen import canvas
 import os
 
-def abrir_tela_locacao():
-    janela = ctk.CTkToplevel()
-    janela.title("Nova Locação")
-    janela.geometry("550x600")
-    janela.resizable(False, False)
-
-    frame = ctk.CTkFrame(janela, corner_radius=10)
-    frame.pack(padx=20, pady=20, fill="both", expand=True)
-
+def construir_tela_locacao(pai):
+    frame = ctk.CTkFrame(pai, corner_radius=10)
     ctk.CTkLabel(frame, text="Nova Locação", font=("Segoe UI", 20, "bold")).pack(pady=10)
 
     # CAMPOS DO CLIENTE
@@ -56,13 +48,22 @@ def abrir_tela_locacao():
     ctk.CTkButton(frame, text="🔍 Buscar Cliente", command=buscar_cliente).pack(pady=8)
 
     # CAÇAMBAS DISPONÍVEIS
-    db = SessionLocal()
-    cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
-    db.close()
+    def atualizar_opcoes_cacamba():
+        db = SessionLocal()
+        cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
+        db.close()
 
-    combo_cacamba = ctk.CTkOptionMenu(frame, values=[f"{c.id} - {c.identificacao}" for c in cacambas])
+        opcoes = [f"{c.id} - {c.identificacao}" for c in cacambas]
+        if opcoes:
+            combo_cacamba.configure(values=opcoes)
+            combo_cacamba.set("Selecione a caçamba")
+        else:
+            combo_cacamba.configure(values=["Nenhuma disponível"])
+            combo_cacamba.set("Nenhuma disponível")
+
+    combo_cacamba = ctk.CTkOptionMenu(frame, values=["Carregando..."])
     combo_cacamba.pack(pady=10)
-    combo_cacamba.set("Selecione a caçamba")
+    atualizar_opcoes_cacamba()
 
     entry_data_fim = ctk.CTkEntry(frame, placeholder_text="Data de Devolução (dd/mm/aaaa)", width=400)
     entry_data_fim.pack(pady=5)
@@ -78,7 +79,6 @@ def abrir_tela_locacao():
         c = canvas.Canvas(caminho)
         c.setFont("Helvetica-Bold", 14)
         c.drawString(100, 800, "RECIBO DE LOCAÇÃO DE CAÇAMBA")
-
         c.setFont("Helvetica", 12)
         c.drawString(50, 760, f"Cliente: {cliente.nome}")
         c.drawString(50, 740, f"CPF/CNPJ: {cliente.cpf_cnpj}")
@@ -98,7 +98,8 @@ def abrir_tela_locacao():
         nome = entry_nome.get().strip()
         telefone = entry_telefone.get().strip()
         endereco = entry_endereco.get().strip()
-        cacamba_id = combo_cacamba.get().split(" - ")[0] if combo_cacamba.get() else None
+        cacamba_valor = combo_cacamba.get()
+        cacamba_id = cacamba_valor.split(" - ")[0] if " - " in cacamba_valor else None
         data_fim_str = entry_data_fim.get().strip()
 
         if not (cpf and nome and telefone and endereco and cacamba_id and data_fim_str):
@@ -135,7 +136,15 @@ def abrir_tela_locacao():
 
             recibo_path = gerar_recibo_pdf(cliente, aluguel, cacamba)
             messagebox.showinfo("Sucesso", f"Locação registrada!\nRecibo salvo em:\n{recibo_path}")
-            janela.destroy()
+
+            # Limpa os campos
+            entry_cpf.delete(0, "end")
+            entry_nome.delete(0, "end")
+            entry_telefone.delete(0, "end")
+            entry_endereco.delete(0, "end")
+            entry_data_fim.delete(0, "end")
+            atualizar_opcoes_cacamba()
+
         except SQLAlchemyError as e:
             db.rollback()
             messagebox.showerror("Erro", f"Erro no banco de dados:\n{e}")
@@ -143,3 +152,5 @@ def abrir_tela_locacao():
             db.close()
 
     ctk.CTkButton(frame, text="✅ Confirmar Aluguel", command=confirmar_locacao, width=250).pack(pady=20)
+
+    return frame
