@@ -31,22 +31,42 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         clientes = db.query(Cliente).all()
         cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
 
-    # Cliente
+   # Cliente
     ctk.CTkLabel(frame, text="👤 Cliente:", font=("Segoe UI", 14)).pack(pady=(5, 0))
-    combo_cliente = ctk.CTkOptionMenu(
-        frame,
-        width=350,
-        values=[f"{c.id} - {c.nome}" for c in clientes] or ["Nenhum cliente encontrado"]
-    )
+    combo_cliente = ctk.CTkOptionMenu(frame, width=350, values=[])
     combo_cliente.pack(pady=5)
 
     # Caçamba
     ctk.CTkLabel(frame, text="🚛 Caçamba disponível:", font=("Segoe UI", 14)).pack(pady=(10, 0))
-    combo_cacamba = ctk.CTkOptionMenu(
-        frame,
-        width=350,
-        values=[f"{c.id} - {c.identificacao}" for c in cacambas] or ["Nenhuma disponível"]
-    )
+    combo_cacamba = ctk.CTkOptionMenu(frame, width=350, values=[])
+    combo_cacamba.pack(pady=5)
+
+   
+
+    # Função para atualizar as listas de clientes e caçambas
+    def atualizar_listas(combo_cliente_widget, combo_cacamba_widget):
+        with SessionLocal() as db:
+            clientes = db.query(Cliente).all()
+            cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
+
+        valores_clientes = [f"{c.id} - {c.nome}" for c in clientes] or ["Nenhum cliente encontrado"]
+        valores_cacambas = [f"{c.id} - {c.identificacao}" for c in cacambas] or ["Nenhuma disponível"]
+
+        combo_cliente_widget.configure(values=valores_clientes)
+        combo_cacamba_widget.configure(values=valores_cacambas)
+
+        if valores_clientes:
+            combo_cliente_widget.set(valores_clientes[0])
+        else:
+            combo_cliente_widget.set("")
+
+        if valores_cacambas:
+            combo_cacamba_widget.set(valores_cacambas[0])
+        else:
+            combo_cacamba_widget.set("")
+    
+    # Chamada inicial ao abrir a tela
+    atualizar_listas(combo_cliente, combo_cacamba)
     combo_cacamba.pack(pady=5)
 
     # Data de início
@@ -110,6 +130,17 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         width=200,
         height=40
     ).pack(pady=20)
+ # Botão para atualizar as listas
+    ctk.CTkButton(
+        frame,
+        text="🔄 Atualizar Caçambas",
+        command=lambda: atualizar_listas(combo_cliente, combo_cacamba),
+        fg_color="#1E90FF",
+        hover_color="#1C86EE",
+        font=("Segoe UI", 12, "bold"),
+        width=200,
+        height=30
+    ).pack(pady=(5, 10))
 
     return frame
 

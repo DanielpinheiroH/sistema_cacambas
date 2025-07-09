@@ -28,7 +28,9 @@ class Aluguel(Base):
     cacamba_id = Column(Integer, ForeignKey('cacambas.id'))
     data_inicio = Column(DateTime, default=datetime.datetime.utcnow)
     data_fim = Column(DateTime)
-    encerrado = Column(Boolean, default=False)
+    encerrado = Column(Boolean, default=False) 
+    
+    valor = Column(float)  
 
     cliente = relationship("Cliente", back_populates="alugueis")
     cacamba = relationship("Cacamba", back_populates="alugueis")
