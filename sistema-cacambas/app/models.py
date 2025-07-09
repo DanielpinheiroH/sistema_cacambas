@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 import datetime
@@ -30,7 +30,7 @@ class Aluguel(Base):
     data_fim = Column(DateTime)
     encerrado = Column(Boolean, default=False) 
     
-    valor = Column(float)  
+    valor = Column(Float)  
 
     cliente = relationship("Cliente", back_populates="alugueis")
     cacamba = relationship("Cacamba", back_populates="alugueis")
