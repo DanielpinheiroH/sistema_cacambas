@@ -4,8 +4,10 @@ from tkinter import Canvas
 import os
 
 from sqlalchemy.orm import joinedload
+from sqlalchemy import Column, Boolean
 from app.database import SessionLocal
 from app.models import Aluguel
+from reportlab.pdfgen import canvas
 
 def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=12)
@@ -68,6 +70,9 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
             lista.insert("end", "⚠️ Nenhum aluguel encontrado.\n")
             return
 
+        
+        
+
         for aluguel in alugueis:
             status = "✅ Encerrado" if aluguel.encerrado else "🔄 Ativo"
             texto = (
@@ -77,6 +82,7 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 f"Fim: {aluguel.data_fim.strftime('%d/%m/%Y')} | Status: {status}\n\n"
             )
             lista.insert("end", texto)
+
 
     # ─── Gerar recibo PDF ───────────────────────────────────────────────
     def gerar_recibo_por_id() -> None:

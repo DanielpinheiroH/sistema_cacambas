@@ -56,7 +56,7 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     texto_detalhes.configure(state="disabled")
 
     # ═══════════════════════════════════════════════════════════════════
-    # EVENTO: Exibir detalhes ao clicar
+    # FUNÇÃO: Exibir detalhes do cliente selecionado
     # ═══════════════════════════════════════════════════════════════════
     def exibir_detalhes(cliente_id: int):
         with SessionLocal() as db:
@@ -81,13 +81,19 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 texto_detalhes.insert("end", "Nenhuma locação encontrada.\n")
             else:
                 for aluguel in alugueis:
-                    status = "Encerrado ✅" if aluguel.encerrado else "Ativo 🔄"
+                    status = "Encerrado ✅" if aluguel.encerrado is True else "Ativo 🔄"
                     data_ini = aluguel.data_inicio.strftime("%d/%m/%Y")
                     data_fim = aluguel.data_fim.strftime("%d/%m/%Y")
                     texto_detalhes.insert("end", f"\n🔹 Caçamba: {aluguel.cacamba.identificacao}\n")
                     texto_detalhes.insert("end", f"     Início: {data_ini} | Fim: {data_fim} | Status: {status}\n")
 
         texto_detalhes.configure(state="disabled")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FUNÇÃO AUXILIAR: Gera comando para cada botão
+    # ═══════════════════════════════════════════════════════════════════
+    def criar_callback(cliente_id: int):
+        return lambda: exibir_detalhes(cliente_id)
 
     # ═══════════════════════════════════════════════════════════════════
     # CARREGAMENTO DOS CLIENTES — Botões estilo card
@@ -99,6 +105,7 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         ctk.CTkLabel(lista_scroll, text="Nenhum cliente cadastrado.").pack(pady=10)
     else:
         for cliente in clientes:
+            cliente_id = cliente.id
             texto = f"👤 {cliente.nome}"
             botao = ctk.CTkButton(
                 lista_scroll,
@@ -111,7 +118,7 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 text_color="white",
                 corner_radius=12,
                 anchor="w",
-                command=lambda cid=cliente.id: exibir_detalhes(cid)
+                command=criar_callback(cliente.id)  # ← Correção final
             )
             botao.pack(pady=6, padx=10)
 
