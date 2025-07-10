@@ -34,3 +34,5 @@ class Aluguel(Base):
     data_fim = Column(DateTime)
     encerrado = Column(Boolean, default=False)
     valor = Column(Float)
+ # NOVO CAMPO:
+    endereco_obra = Column(String, nullable=False)
