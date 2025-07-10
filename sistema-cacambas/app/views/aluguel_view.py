@@ -162,25 +162,42 @@ def construir_tela_devolucao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         frame,
         text="Selecione o aluguel ativo para confirmar a devolução:",
         font=("Segoe UI", 14)
+    ).pack(pady=(0, 10))
+
+    opcoes_var = ctk.StringVar()
+    combo = ctk.CTkOptionMenu(frame, variable=opcoes_var, values=[], width=400)
+    combo.pack(pady=10)
+
+    def carregar_alugueis():
+        with SessionLocal() as db:
+            alugueis = db.query(Aluguel)\
+                .filter(Aluguel.encerrado == False)\
+                .options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))\
+                .order_by(Aluguel.data_fim)\
+                .all()
+
+            lista = [
+                f"{a.id} - {a.cliente.nome} | Caçamba: {a.cacamba.identificacao} | Fim: {a.data_fim.strftime('%d/%m/%Y')}"
+                for a in alugueis if a.cliente and a.cacamba
+            ]
+
+        combo.configure(values=lista or ["Nenhum aluguel disponível"])
+        if lista:
+            opcoes_var.set(lista[0])
+        else:
+            opcoes_var.set("Nenhum aluguel disponível")
+
+    # Botão atualizar
+    ctk.CTkButton(
+        frame,
+        text="🔄 Atualizar Lista",
+        command=carregar_alugueis,
+        fg_color="#3B82F6",
+        font=("Segoe UI", 12, "bold"),
+        width=200
     ).pack(pady=(0, 15))
 
-    with SessionLocal() as db:
-        alugueis = db.query(Aluguel).filter_by(encerrado=False)\
-            .options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba)).all()
-
-    lista_exibicao = [
-        f"{a.id} - {a.cliente.nome} | Caçamba: {a.cacamba.identificacao} | Fim: {a.data_fim.strftime('%d/%m/%Y')}"
-        for a in alugueis
-    ] or ["Nenhum aluguel disponível"]
-
-    combo = ctk.CTkOptionMenu(
-        frame,
-        values=lista_exibicao,
-        width=400
-    )
-    combo.pack(pady=10)
-    combo.set(lista_exibicao[0])
-
+    # Feedback visual
     status_label = ctk.CTkLabel(frame, text="", font=("Segoe UI", 12))
     status_label.pack(pady=5)
 
@@ -188,9 +205,10 @@ def construir_tela_devolucao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         status_label.configure(text=msg, text_color=cor)
         frame.after(2000, lambda: status_label.configure(text=""))
 
+    # Botão de confirmar
     def confirmar_devolucao():
-        selecionado = combo.get()
-        if "Nenhum" in selecionado:
+        selecionado = opcoes_var.get()
+        if "Nenhum" in selecionado or not selecionado:
             messagebox.showerror("Erro", "Nenhum aluguel selecionado.")
             return
 
@@ -200,16 +218,15 @@ def construir_tela_devolucao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
             with SessionLocal() as db:
                 aluguel = db.query(Aluguel).get(aluguel_id)
                 aluguel.encerrado = True
-
                 cacamba = db.query(Cacamba).get(aluguel.cacamba_id)
                 cacamba.disponivel = True
-
                 db.commit()
 
-            animar_confirmacao("✅ Devolução registrada com sucesso!", cor="green")
+            animar_confirmacao("✅ Devolução registrada com sucesso!", "green")
+            carregar_alugueis()
 
         except Exception as e:
-            animar_confirmacao("❌ Erro ao registrar devolução!", cor="red")
+            animar_confirmacao("❌ Erro ao registrar devolução!", "red")
             messagebox.showerror("Erro", f"Ocorreu um erro:\n{e}")
 
     ctk.CTkButton(
@@ -221,6 +238,8 @@ def construir_tela_devolucao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         width=300,
         height=40,
         font=("Segoe UI", 14, "bold")
-    ).pack(pady=20)
+    ).pack(pady=10)
+
+    carregar_alugueis()  # carrega ao abrir a tela
 
     return frame
