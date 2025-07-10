@@ -32,57 +32,67 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         font=("Segoe UI", 14)
     ).pack(side="left", padx=(0, 8))
 
+    def carregar_tabela_filtrada():
+        status = filtro_var.get()
+        exibir_tabela_alugueis_custom(frame, status)
+
     filtro_menu = ctk.CTkOptionMenu(
         filtro_frame,
         variable=filtro_var,
         values=["Todos", "Ativos", "Encerrados"],
         width=160,
-        command=lambda _: carregar_alugueis()
+        command=lambda _: carregar_tabela_filtrada()
     )
     filtro_menu.pack(side="left")
 
-    # ─── Lista de aluguéis ──────────────────────────────────────────────
-    lista = ctk.CTkTextbox(
-        frame,
-        height=320,
-        width=720,
-        font=("Segoe UI", 13),
-        corner_radius=10,
-        border_width=1.5,
-        border_color="#E5E7EB"
-    )
-    lista.pack(pady=10)
-
-    def carregar_alugueis() -> None:
-        lista.delete("1.0", "end")
+    # ─── Função para exibir tabela com filtro ───────────────────────────
+    def exibir_tabela_alugueis_custom(destino_frame: ctk.CTkFrame, filtro_status: str = "Todos"):
+        # Remove widgets da tabela antiga (menos o título, filtro e recibo)
+        for widget in destino_frame.winfo_children()[2:]:
+            widget.destroy()
 
         with SessionLocal() as db:
             query = db.query(Aluguel).options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
 
-            if filtro_var.get() == "Ativos":
-                query = query.filter(Aluguel.encerrado.is_(False))
-            elif filtro_var.get() == "Encerrados":
-                query = query.filter(Aluguel.encerrado.is_(True))
+            if filtro_status == "Ativos":
+                query = query.filter(Aluguel.encerrado == False)
+            elif filtro_status == "Encerrados":
+                query = query.filter(Aluguel.encerrado == True)
 
             alugueis = query.order_by(Aluguel.data_inicio.desc()).all()
 
+        # Cabeçalhos
+        cabecalho = ctk.CTkFrame(destino_frame, fg_color="#dddddd")
+        cabecalho.pack(fill="x", padx=10)
+
+        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status"]
+        larguras = [40, 160, 80, 90, 90, 90]
+
+        for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
+            label = ctk.CTkLabel(cabecalho, text=titulo, width=largura, anchor="center", font=("Segoe UI", 12, "bold"))
+            label.grid(row=0, column=i, padx=2, pady=4)
+
+        corpo = ctk.CTkScrollableFrame(destino_frame, height=320)
+        corpo.pack(fill="both", expand=True, padx=10, pady=5)
+
         if not alugueis:
-            lista.insert("end", "⚠️ Nenhum aluguel encontrado.\n")
+            ctk.CTkLabel(corpo, text="⚠️ Nenhum aluguel encontrado.", font=("Segoe UI", 13)).pack(pady=20)
             return
 
-        
-        
-
-        for aluguel in alugueis:
+        for idx, aluguel in enumerate(alugueis):
+            nome_cliente = aluguel.cliente.nome if aluguel.cliente else "?"
+            identificacao = aluguel.cacamba.identificacao if aluguel.cacamba else "?"
             status = "✅ Encerrado" if aluguel.encerrado else "🔄 Ativo"
-            texto = (
-                f"📦 ID: {aluguel.id} | Cliente: {aluguel.cliente.nome}\n"
-                f"   🏷️ Caçamba: {aluguel.cacamba.identificacao}\n"
-                f"   📅 Início: {aluguel.data_inicio.strftime('%d/%m/%Y')} | "
-                f"Fim: {aluguel.data_fim.strftime('%d/%m/%Y')} | Status: {status}\n\n"
-            )
-            lista.insert("end", texto)
+            inicio = aluguel.data_inicio.strftime("%d/%m/%Y")
+            fim = aluguel.data_fim.strftime("%d/%m/%Y")
 
+            dados = [str(aluguel.id), nome_cliente, identificacao, inicio, fim, status]
+
+            linha = ctk.CTkFrame(corpo, fg_color="#f6f6f6" if idx % 2 == 0 else "#e2e2e2")
+            linha.pack(fill="x")
+
+            for i, (valor, largura) in enumerate(zip(dados, larguras)):
+                ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 12)).grid(row=0, column=i, padx=2, pady=4)
 
     # ─── Gerar recibo PDF ───────────────────────────────────────────────
     def gerar_recibo_por_id() -> None:
@@ -152,11 +162,13 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         width=220,
         height=42,
         font=("Segoe UI", 13, "bold"),
-        fg_color="#2563EB",         # Azul moderno
+        fg_color="#2563EB",
         hover_color="#1D4ED8",
         text_color="white",
         corner_radius=12
     ).pack(pady=(10, 10))
 
-    carregar_alugueis()
+    # ─── Carregar a tabela ao abrir ──────────────────────────────────────
+    exibir_tabela_alugueis_custom(frame)
+
     return frame

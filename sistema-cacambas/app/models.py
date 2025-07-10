@@ -26,11 +26,11 @@ class Aluguel(Base):
     id = Column(Integer, primary_key=True)
     cliente_id = Column(Integer, ForeignKey('clientes.id'))
     cacamba_id = Column(Integer, ForeignKey('cacambas.id'))
+    
+    cliente = relationship("Cliente", back_populates="alugueis")  # ← ok
+    cacamba = relationship("Cacamba", back_populates="alugueis")  # ← ok
+    
     data_inicio = Column(DateTime, default=datetime.datetime.utcnow)
     data_fim = Column(DateTime)
-    encerrado = Column(Boolean, default=False) 
-    
-    valor = Column(Float)  
-
-    cliente = relationship("Cliente", back_populates="alugueis")
-    cacamba = relationship("Cacamba", back_populates="alugueis")
+    encerrado = Column(Boolean, default=False)
+    valor = Column(Float)
