@@ -1,3 +1,4 @@
+# ... [importações mantidas iguais]
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
@@ -18,8 +19,68 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     coluna_esquerda.pack(side="left", fill="y", padx=(0, 15))
 
     ctk.CTkLabel(coluna_esquerda, text="👥 Clientes", font=("Segoe UI", 18, "bold")).pack(pady=(0, 12))
+
+    # 🔍 Campo de busca
+    campo_busca = ctk.CTkEntry(coluna_esquerda, placeholder_text="Buscar por nome ou CPF/CNPJ", width=280)
+    campo_busca.pack(padx=10, pady=(0, 5))
+
+    # Lista de clientes
     lista_scroll = ctk.CTkScrollableFrame(coluna_esquerda, width=300, height=450, corner_radius=12)
     lista_scroll.pack(fill="y", expand=True)
+
+    def criar_callback(cliente_id: int):
+        return lambda: exibir_detalhes(cliente_id)
+
+    def buscar_clientes():
+        termo = campo_busca.get().strip().lower()
+        for widget in lista_scroll.winfo_children():
+            widget.destroy()
+
+        with SessionLocal() as db:
+            clientes = db.query(Cliente).filter(
+                (Cliente.nome.ilike(f"%{termo}%")) | (Cliente.cpf_cnpj.ilike(f"%{termo}%"))
+            ).order_by(Cliente.nome.asc()).all()
+
+        if not clientes:
+            ctk.CTkLabel(lista_scroll, text="Nenhum cliente encontrado.").pack(pady=10)
+        else:
+            for cliente in clientes:
+                texto = f"👤 {cliente.nome}"
+                ctk.CTkButton(
+                    lista_scroll,
+                    text=texto,
+                    width=280,
+                    height=45,
+                    font=("Segoe UI", 14, "bold"),
+                    fg_color="#6366F1",
+                    hover_color="#4F46E5",
+                    text_color="white",
+                    corner_radius=10,
+                    anchor="w",
+                    command=criar_callback(cliente.id)
+                ).pack(pady=5, padx=10)
+
+    # Botão de pesquisa
+    ctk.CTkButton(
+        coluna_esquerda,
+        text="atualizar",
+        command=buscar_clientes,
+        width=280,
+        fg_color="#0EA5E9",
+        hover_color="#0284C7",
+        font=("Segoe UI", 13, "bold")
+    ).pack(pady=(10, 5), padx=10)
+
+    # Botão de atualizar lista
+    ctk.CTkButton(
+        coluna_esquerda,
+        text="🔄 Atualizar Lista",
+        command=lambda: recarregar_clientes(),
+        width=280,
+        fg_color="#10B981",
+        hover_color="#059669",
+        font=("Segoe UI", 13, "bold")
+    ).pack(pady=(0, 15), padx=10)
 
     coluna_direita = ctk.CTkFrame(conteudo)
     coluna_direita.pack(side="right", fill="both", expand=True)
@@ -147,9 +208,6 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         texto_detalhes.insert("end", "Selecione um cliente para ver os detalhes.")
         texto_detalhes.configure(state="disabled")
 
-    def criar_callback(cliente_id: int):
-        return lambda: exibir_detalhes(cliente_id)
-
     def recarregar_clientes():
         for widget in lista_scroll.winfo_children():
             widget.destroy()
@@ -175,16 +233,6 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                     anchor="w",
                     command=criar_callback(cliente.id)
                 ).pack(pady=5, padx=10)
-
-    ctk.CTkButton(
-        coluna_esquerda,
-        text="🔄 Atualizar Lista",
-        command=recarregar_clientes,
-        width=280,
-        fg_color="#10B981",
-        hover_color="#059669",
-        font=("Segoe UI", 13, "bold")
-    ).pack(pady=(10, 15), padx=10)
 
     botoes_acao = ctk.CTkFrame(coluna_direita)
     botoes_acao.pack(pady=10)
