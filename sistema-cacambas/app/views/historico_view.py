@@ -28,6 +28,19 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     tabela_frame = ctk.CTkFrame(frame, fg_color="transparent")
     tabela_frame.pack(fill="both", expand=True)
 
+    def alternar_status_pagamento(aluguel_id: int):
+        from app.database import SessionLocal
+        from app.models import Aluguel
+        from tkinter import messagebox
+
+        with SessionLocal() as db:
+            aluguel = db.query(Aluguel).get(aluguel_id)
+            if aluguel:
+                aluguel.pago = not aluguel.pago
+                db.commit()
+                status = "Pago" if aluguel.pago else "Não Pago"
+                messagebox.showinfo("Sucesso", f"Status de pagamento atualizado para: {status}")
+    
     def exibir_tabela_alugueis_custom(filtro_status: str = "Todos"):
         for widget in tabela_frame.winfo_children():
             widget.destroy()
@@ -44,8 +57,8 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
 
         cabecalho = ctk.CTkFrame(tabela_frame, fg_color="#dddddd")
         cabecalho.pack(fill="x", padx=10)
-        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status"]
-        larguras = [40, 160, 80, 90, 90, 90]
+        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status","Endereço da Obra","Pago?", "Ação"]
+        larguras = [40, 160, 80, 90, 90, 90, 240, 80, 80]
 
         for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
             label = ctk.CTkLabel(cabecalho, text=titulo, width=largura, anchor="center", font=("Segoe UI", 12, "bold"))
@@ -59,20 +72,35 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
             return
 
         for idx, aluguel in enumerate(alugueis):
+            pago = "✅" if aluguel.pago else "❌"
+            btn_texto = "↩️ Estornar" if aluguel.pago else "💰 Marcar"
+            btn_cor = "#F59E0B" if aluguel.pago else "#10B981"
+            btn_hover = "#D97706" if aluguel.pago else "#059669"
             dados = [
                 str(aluguel.id),
                 aluguel.cliente.nome if aluguel.cliente else "?",
                 aluguel.cacamba.identificacao if aluguel.cacamba else "?",
                 aluguel.data_inicio.strftime("%d/%m/%Y"),
                 aluguel.data_fim.strftime("%d/%m/%Y"),
-                "✅ Encerrado" if aluguel.encerrado else "🔄 Ativo"
+                "✅ Encerrado" if aluguel.encerrado else "🔄 Ativo",
+                aluguel.endereco_obra or "—",
+                pago
             ]
             linha = ctk.CTkFrame(corpo, fg_color="#f6f6f6" if idx % 2 == 0 else "#e2e2e2")
             linha.pack(fill="x")
 
             for i, (valor, largura) in enumerate(zip(dados, larguras)):
                 ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 12)).grid(row=0, column=i, padx=2, pady=4)
-
+                ctk.CTkButton(
+                    linha,
+                    text=btn_texto,
+                    width=90,
+                    height=30,
+                    font=("Segoe UI", 12),
+                    fg_color=btn_cor,
+                    hover_color=btn_hover,
+                    command=lambda a_id=aluguel.id:alternar_status_pagamento(a_id)
+                ).grid(row=0, column=len(dados), padx=4)
     filtro_menu = ctk.CTkOptionMenu(
         filtro_frame,
         variable=filtro_var,
@@ -117,6 +145,7 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         c.drawString(50, 760, f"Cliente: {cliente.nome}")
         c.drawString(50, 740, f"CPF/CNPJ: {cliente.cpf_cnpj}")
         c.drawString(50, 720, f"Telefone: {cliente.telefone}")
+        c.drawString(50, 680, f"Endereço da Obra: {aluguel.endereco_obra or '—'}")
         c.drawString(50, 700, f"Endereço: {cliente.endereco}")
         c.drawString(50, 680, f"Caçamba: {cacamba.identificacao}")
         c.drawString(50, 660, f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
