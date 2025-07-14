@@ -9,7 +9,6 @@ from reportlab.pdfgen import canvas
 def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=12)
 
-    # Título
     ctk.CTkLabel(
         frame,
         text="📜 Histórico de Aluguéis",
@@ -17,22 +16,16 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         text_color="#111827"
     ).pack(pady=(20, 10))
 
-    # Filtro
     filtro_var = ctk.StringVar(value="Todos")
     filtro_frame = ctk.CTkFrame(frame, fg_color="transparent")
     filtro_frame.pack(pady=(0, 10))
 
     ctk.CTkLabel(filtro_frame, text="🔎 Status:", font=("Segoe UI", 14)).pack(side="left", padx=(0, 8))
 
-    # Frame dinâmico da tabela
     tabela_frame = ctk.CTkFrame(frame, fg_color="transparent")
     tabela_frame.pack(fill="both", expand=True)
 
     def alternar_status_pagamento(aluguel_id: int):
-        from app.database import SessionLocal
-        from app.models import Aluguel
-        from tkinter import messagebox
-
         with SessionLocal() as db:
             aluguel = db.query(Aluguel).get(aluguel_id)
             if aluguel:
@@ -40,25 +33,35 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 db.commit()
                 status = "Pago" if aluguel.pago else "Não Pago"
                 messagebox.showinfo("Sucesso", f"Status de pagamento atualizado para: {status}")
-    
+
+    def excluir_aluguel(aluguel_id: int):
+        confirm = messagebox.askyesno("Confirmar", "Deseja realmente excluir este aluguel?")
+        if not confirm:
+            return
+        with SessionLocal() as db:
+            aluguel = db.query(Aluguel).get(aluguel_id)
+            if aluguel:
+                db.delete(aluguel)
+                db.commit()
+        exibir_tabela_alugueis_custom(filtro_var.get())
+        messagebox.showinfo("Sucesso", "Aluguel excluído com sucesso.")
+
     def exibir_tabela_alugueis_custom(filtro_status: str = "Todos"):
         for widget in tabela_frame.winfo_children():
             widget.destroy()
 
         with SessionLocal() as db:
             query = db.query(Aluguel).options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
-
             if filtro_status == "Ativos":
                 query = query.filter(Aluguel.encerrado == False)
             elif filtro_status == "Encerrados":
                 query = query.filter(Aluguel.encerrado == True)
-
             alugueis = query.order_by(Aluguel.data_inicio.desc()).all()
 
         cabecalho = ctk.CTkFrame(tabela_frame, fg_color="#dddddd")
         cabecalho.pack(fill="x", padx=10)
-        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status","Endereço da Obra","Pago?", "Ação"]
-        larguras = [40, 160, 80, 90, 90, 90, 240, 80, 80]
+        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status","Endereço da Obra","Pago?", "Ações"]
+        larguras = [40, 160, 80, 90, 90, 90, 240, 80, 160]
 
         for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
             label = ctk.CTkLabel(cabecalho, text=titulo, width=largura, anchor="center", font=("Segoe UI", 12, "bold"))
@@ -91,16 +94,29 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
 
             for i, (valor, largura) in enumerate(zip(dados, larguras)):
                 ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 12)).grid(row=0, column=i, padx=2, pady=4)
-                ctk.CTkButton(
-                    linha,
-                    text=btn_texto,
-                    width=90,
-                    height=30,
-                    font=("Segoe UI", 12),
-                    fg_color=btn_cor,
-                    hover_color=btn_hover,
-                    command=lambda a_id=aluguel.id:alternar_status_pagamento(a_id)
-                ).grid(row=0, column=len(dados), padx=4)
+
+            ctk.CTkButton(
+                linha,
+                text=btn_texto,
+                width=80,
+                height=30,
+                font=("Segoe UI", 12),
+                fg_color=btn_cor,
+                hover_color=btn_hover,
+                command=lambda a_id=aluguel.id: alternar_status_pagamento(a_id)
+            ).grid(row=0, column=len(dados), padx=2)
+
+            ctk.CTkButton(
+                linha,
+                text="🗑️",
+                width=40,
+                height=30,
+                font=("Segoe UI", 14),
+                fg_color="#EF4444",
+                hover_color="#DC2626",
+                command=lambda a_id=aluguel.id: excluir_aluguel(a_id)
+            ).grid(row=0, column=len(dados)+1, padx=2)
+
     filtro_menu = ctk.CTkOptionMenu(
         filtro_frame,
         variable=filtro_var,
@@ -110,7 +126,6 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     )
     filtro_menu.pack(side="left")
 
-    # Campo + botão para recibo
     recibo_frame = ctk.CTkFrame(frame, fg_color="transparent")
     recibo_frame.pack(pady=(10, 0))
 
@@ -145,12 +160,12 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         c.drawString(50, 760, f"Cliente: {cliente.nome}")
         c.drawString(50, 740, f"CPF/CNPJ: {cliente.cpf_cnpj}")
         c.drawString(50, 720, f"Telefone: {cliente.telefone}")
-        c.drawString(50, 680, f"Endereço da Obra: {aluguel.endereco_obra or '—'}")
         c.drawString(50, 700, f"Endereço: {cliente.endereco}")
-        c.drawString(50, 680, f"Caçamba: {cacamba.identificacao}")
-        c.drawString(50, 660, f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
-        c.drawString(50, 640, f"Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
-        c.drawString(50, 620, f"ID do Aluguel: {aluguel.id}")
+        c.drawString(50, 680, f"Endereço da Obra: {aluguel.endereco_obra or '—'}")
+        c.drawString(50, 660, f"Caçamba: {cacamba.identificacao}")
+        c.drawString(50, 640, f"Início: {aluguel.data_inicio.strftime('%d/%m/%Y')}")
+        c.drawString(50, 620, f"Devolução: {aluguel.data_fim.strftime('%d/%m/%Y')}")
+        c.drawString(50, 600, f"ID do Aluguel: {aluguel.id}")
         c.drawString(50, 580, "Assinatura: ____________________________")
         c.drawString(50, 560, "Data: ____/____/______")
         c.save()

@@ -23,8 +23,10 @@ telas = {}  # Dicionário que armazena todas as views
 
 
 def mostrar_tela(nome: str) -> None:
-    if nome in telas:
+    if nome in telas and telas[nome].winfo_exists():
         telas[nome].tkraise()
+    else:
+        print(f"⚠️ Tela '{nome}' não encontrada ou foi destruída.")
 
 
 def mostrar_dashboard(frame: ctk.CTkFrame) -> None:
