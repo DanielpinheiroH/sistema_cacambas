@@ -12,33 +12,34 @@ from app.models import Cliente
 
 def construir_tela_cliente(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=10)
+    frame.grid_columnconfigure(0, weight=1)
 
     # ─── Título ─────────────────────────────────────────────────────────
     ctk.CTkLabel(
         frame,
         text="👤 Cadastro de Cliente",
         font=("Segoe UI", 22, "bold")
-    ).pack(pady=(20, 10))
+    ).grid(row=0, column=0, pady=(20, 10), sticky="n")
 
     # ─── Campo: Nome completo ───────────────────────────────────────────
     entry_nome = ctk.CTkEntry(frame, placeholder_text="Nome completo", width=400)
-    entry_nome.pack(pady=6)
+    entry_nome.grid(row=1, column=0, pady=6)
 
     # ─── Campo: CPF ou CNPJ ─────────────────────────────────────────────
     entry_cpf_cnpj = ctk.CTkEntry(frame, placeholder_text="CPF ou CNPJ", width=400)
-    entry_cpf_cnpj.pack(pady=6)
+    entry_cpf_cnpj.grid(row=2, column=0, pady=6)
 
     # ─── Campo: E-mail ──────────────────────────────────────────────────
     entry_email = ctk.CTkEntry(frame, placeholder_text="E-mail", width=400)
-    entry_email.pack(pady=6)
+    entry_email.grid(row=3, column=0, pady=6)
 
     # ─── Campo: Endereço ────────────────────────────────────────────────
     entry_endereco = ctk.CTkEntry(frame, placeholder_text="Endereço (rua, avenida etc.)", width=400)
-    entry_endereco.pack(pady=6)
+    entry_endereco.grid(row=4, column=0, pady=6)
 
     # ─── Campo: Telefone ────────────────────────────────────────────────
     entry_telefone = ctk.CTkEntry(frame, placeholder_text="Telefone", width=400)
-    entry_telefone.pack(pady=6)
+    entry_telefone.grid(row=5, column=0, pady=6)
 
     # ─── Botão de salvar ────────────────────────────────────────────────
     def salvar_cliente():
@@ -86,6 +87,6 @@ def construir_tela_cliente(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         width=250,
         height=40,
         font=("Segoe UI", 14, "bold")
-    ).pack(pady=20)
+    ).grid(row=6, column=0, pady=20)
 
     return frame

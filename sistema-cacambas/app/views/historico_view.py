@@ -9,21 +9,25 @@ from reportlab.pdfgen import canvas
 def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=12)
 
-    ctk.CTkLabel(
+    titulo = ctk.CTkLabel(
         frame,
         text="📜 Histórico de Aluguéis",
         font=("Segoe UI", 26, "bold"),
         text_color="#111827"
-    ).pack(pady=(20, 10))
+    )
+    titulo.grid(row=0, column=0, columnspan=3, pady=(20, 10))
 
     filtro_var = ctk.StringVar(value="Todos")
     filtro_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    filtro_frame.pack(pady=(0, 10))
+    filtro_frame.grid(row=1, column=0, columnspan=3, pady=(0, 10))
 
     ctk.CTkLabel(filtro_frame, text="🔎 Status:", font=("Segoe UI", 14)).pack(side="left", padx=(0, 8))
 
     tabela_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    tabela_frame.pack(fill="both", expand=True)
+    tabela_frame.grid(row=2, column=0, columnspan=3, sticky="nsew")
+
+    frame.grid_rowconfigure(2, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
 
     def alternar_status_pagamento(aluguel_id: int):
         with SessionLocal() as db:
@@ -60,7 +64,7 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
 
         cabecalho = ctk.CTkFrame(tabela_frame, fg_color="#dddddd")
         cabecalho.pack(fill="x", padx=10)
-        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status","Endereço da Obra","Pago?", "Ações"]
+        colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Status", "Endereço da Obra", "Pago?", "Ações"]
         larguras = [40, 160, 80, 90, 90, 90, 240, 80, 160]
 
         for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
@@ -127,7 +131,7 @@ def construir_tela_historico(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     filtro_menu.pack(side="left")
 
     recibo_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    recibo_frame.pack(pady=(10, 0))
+    recibo_frame.grid(row=3, column=0, columnspan=3, pady=(10, 0))
 
     ctk.CTkLabel(recibo_frame, text="🎯 Gerar recibo por ID do aluguel:", font=("Segoe UI", 14, "bold")).pack(pady=(5, 8))
 

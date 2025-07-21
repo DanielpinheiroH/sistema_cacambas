@@ -17,33 +17,47 @@ from app.models import Cliente, Cacamba, Aluguel
 
 def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=15)
-    frame.pack(fill="both", expand=True, padx=20, pady=20)
+    frame.grid_rowconfigure(tuple(range(30)), weight=0)
+    frame.grid_columnconfigure(0, weight=1)
 
     # Título
     ctk.CTkLabel(
         frame,
         text="📄 Registrar Novo Aluguel",
         font=("Segoe UI", 22, "bold")
-    ).pack(pady=(20, 10))
+    ).grid(row=0, column=0, pady=(20, 10))
 
-    # Banco de dados
-    with SessionLocal() as db:
-        clientes = db.query(Cliente).all()
-        cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
-
-   # Cliente
-    ctk.CTkLabel(frame, text="👤 Cliente:", font=("Segoe UI", 14)).pack(pady=(5, 0))
+    # Cliente
+    ctk.CTkLabel(frame, text="👤 Cliente:", font=("Segoe UI", 14)).grid(row=1, column=0, pady=(5, 0))
     combo_cliente = ctk.CTkOptionMenu(frame, width=350, values=[])
-    combo_cliente.pack(pady=5)
+    combo_cliente.grid(row=2, column=0, pady=5)
 
     # Caçamba
-    ctk.CTkLabel(frame, text="🚛 Caçamba disponível:", font=("Segoe UI", 14)).pack(pady=(10, 0))
+    ctk.CTkLabel(frame, text="🚛 Caçamba disponível:", font=("Segoe UI", 14)).grid(row=3, column=0, pady=(10, 0))
     combo_cacamba = ctk.CTkOptionMenu(frame, width=350, values=[])
-    combo_cacamba.pack(pady=5)
+    combo_cacamba.grid(row=4, column=0, pady=5)
 
-   
+    # Data de início
+    ctk.CTkLabel(frame, text="📅 Data de Início (dd/mm/aaaa):", font=("Segoe UI", 14)).grid(row=5, column=0, pady=(10, 0))
+    entry_inicio = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 10/07/2025")
+    entry_inicio.grid(row=6, column=0, pady=5)
 
-    # Função para atualizar as listas de clientes e caçambas
+    # Data de fim
+    ctk.CTkLabel(frame, text="📅 Data de Fim (dd/mm/aaaa):", font=("Segoe UI", 14)).grid(row=7, column=0, pady=(10, 0))
+    entry_fim = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 15/07/2025")
+    entry_fim.grid(row=8, column=0, pady=5)
+
+    # Endereço da Obra
+    ctk.CTkLabel(frame, text="📍 Endereço da Obra:", font=("Segoe UI", 14)).grid(row=9, column=0, pady=(10, 0))
+    entry_endereco = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: Rua A, nº 123 - Bairro X")
+    entry_endereco.grid(row=10, column=0, pady=5)
+
+    # Valor do aluguel
+    ctk.CTkLabel(frame, text="💲 Valor do aluguel (R$):", font=("Segoe UI", 14)).grid(row=11, column=0, pady=(10, 0))
+    entry_valor = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 450.00")
+    entry_valor.grid(row=12, column=0, pady=5)
+
+    # Função atualizar
     def atualizar_listas(combo_cliente_widget, combo_cacamba_widget):
         with SessionLocal() as db:
             clientes = db.query(Cliente).all()
@@ -55,40 +69,12 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         combo_cliente_widget.configure(values=valores_clientes)
         combo_cacamba_widget.configure(values=valores_cacambas)
 
-        if valores_clientes:
-            combo_cliente_widget.set(valores_clientes[0])
-        else:
-            combo_cliente_widget.set("")
+        combo_cliente_widget.set(valores_clientes[0] if valores_clientes else "")
+        combo_cacamba_widget.set(valores_cacambas[0] if valores_cacambas else "")
 
-        if valores_cacambas:
-            combo_cacamba_widget.set(valores_cacambas[0])
-        else:
-            combo_cacamba_widget.set("")
-    
-    # Chamada inicial ao abrir a tela
     atualizar_listas(combo_cliente, combo_cacamba)
-    combo_cacamba.pack(pady=5)
 
-    # Data de início
-    ctk.CTkLabel(frame, text="📅 Data de Início (dd/mm/aaaa):", font=("Segoe UI", 14)).pack(pady=(10, 0))
-    entry_inicio = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 10/07/2025")
-    entry_inicio.pack(pady=5)
-
-    # Data de fim
-    ctk.CTkLabel(frame, text="📅 Data de Fim (dd/mm/aaaa):", font=("Segoe UI", 14)).pack(pady=(10, 0))
-    entry_fim = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 15/07/2025")
-    entry_fim.pack(pady=5)
-
-    # Endereço da Obra
-    ctk.CTkLabel(frame, text="📍 Endereço da Obra:", font=("Segoe UI", 14)).pack(pady=(10, 0))
-    entry_endereco = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: Rua A, nº 123 - Bairro X")
-    entry_endereco.pack(pady=5)
-    # Valor do aluguel
-    ctk.CTkLabel(frame, text="💲 Valor do aluguel (R$):", font=("Segoe UI", 14)).pack(pady=(10, 0))
-    entry_valor = ctk.CTkEntry(frame, width=350, placeholder_text="Ex: 450.00")
-    entry_valor.pack(pady=5)
-
-    # Botão salvar
+    # Função salvar
     def salvar_aluguel():
         try:
             cliente_id = int(combo_cliente.get().split(" - ")[0])
@@ -100,7 +86,7 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
             if data_fim <= data_inicio:
                 messagebox.showerror("Erro", "A data de fim deve ser posterior à data de início.")
                 return
-            
+
             endereco_obra = entry_endereco.get().strip()
             if not endereco_obra:
                 messagebox.showerror("Erro", "Informe o endereço da obra.")
@@ -108,27 +94,31 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
 
             with SessionLocal() as db:
                 aluguel = Aluguel(
-                   cliente_id=cliente_id,
-                   cacamba_id=cacamba_id,
-                   data_inicio=data_inicio,
-                   data_fim=data_fim,
-                   valor=valor,
-                   endereco_obra=endereco_obra
+                    cliente_id=cliente_id,
+                    cacamba_id=cacamba_id,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    valor=valor,
+                    endereco_obra=endereco_obra
                 )
                 db.add(aluguel)
                 cacamba = db.query(Cacamba).get(cacamba_id)
                 cacamba.disponivel = False
                 db.commit()
-            
+
             combo_cliente.set("")
             combo_cacamba.set("")
             entry_inicio.delete(0, "end")
             entry_fim.delete(0, "end")
             entry_valor.delete(0, "end")
+            entry_endereco.delete(0, "end")
+
+            messagebox.showinfo("Sucesso", "Aluguel registrado com sucesso!")
 
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao registrar aluguel:\n{e}")
 
+    # Botão salvar
     ctk.CTkButton(
         frame,
         text="💾 Salvar Aluguel",
@@ -138,8 +128,9 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         font=("Segoe UI", 14, "bold"),
         width=200,
         height=40
-    ).pack(pady=20)
- # Botão para atualizar as listas
+    ).grid(row=13, column=0, pady=(20, 5))
+
+    # Botão atualizar
     ctk.CTkButton(
         frame,
         text="🔄 Atualizar Caçambas",
@@ -149,9 +140,10 @@ def construir_tela_aluguel(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         font=("Segoe UI", 12, "bold"),
         width=200,
         height=30
-    ).pack(pady=(5, 10))
+    ).grid(row=14, column=0, pady=(5, 30))
 
     return frame
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TELA: REGISTRAR DEVOLUÇÃO

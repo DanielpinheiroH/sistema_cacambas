@@ -1,4 +1,3 @@
-# ... [importações mantidas iguais]
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
@@ -9,24 +8,28 @@ from app.models import Cliente, Aluguel
 
 def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame_principal = ctk.CTkFrame(pai, corner_radius=12)
+    frame_principal.grid_columnconfigure(0, weight=1)
+    frame_principal.grid_rowconfigure(1, weight=1)
 
-    ctk.CTkLabel(frame_principal, text="📋 Consulta de Clientes", font=("Segoe UI", 24, "bold")).pack(pady=20)
+    ctk.CTkLabel(frame_principal, text="📋 Consulta de Clientes", font=("Segoe UI", 24, "bold")).grid(row=0, column=0, pady=20)
 
     conteudo = ctk.CTkFrame(frame_principal)
-    conteudo.pack(padx=10, pady=10, fill="both", expand=True)
+    conteudo.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+    conteudo.grid_columnconfigure(0, weight=0)
+    conteudo.grid_columnconfigure(1, weight=1)
+    conteudo.grid_rowconfigure(0, weight=1)
 
     coluna_esquerda = ctk.CTkFrame(conteudo)
-    coluna_esquerda.pack(side="left", fill="y", padx=(0, 15))
+    coluna_esquerda.grid(row=0, column=0, sticky="ns", padx=(0, 15))
+    coluna_esquerda.grid_rowconfigure(2, weight=1)
 
-    ctk.CTkLabel(coluna_esquerda, text="👥 Clientes", font=("Segoe UI", 18, "bold")).pack(pady=(0, 12))
+    ctk.CTkLabel(coluna_esquerda, text="👥 Clientes", font=("Segoe UI", 18, "bold")).grid(row=0, column=0, pady=(0, 12), sticky="w")
 
-    # 🔍 Campo de busca
     campo_busca = ctk.CTkEntry(coluna_esquerda, placeholder_text="Buscar por nome ou CPF/CNPJ", width=280)
-    campo_busca.pack(padx=10, pady=(0, 5))
+    campo_busca.grid(row=1, column=0, padx=10, pady=(0, 5))
 
-    # Lista de clientes
     lista_scroll = ctk.CTkScrollableFrame(coluna_esquerda, width=300, height=450, corner_radius=12)
-    lista_scroll.pack(fill="y", expand=True)
+    lista_scroll.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="nsew")
 
     def criar_callback(cliente_id: int):
         return lambda: exibir_detalhes(cliente_id)
@@ -60,18 +63,16 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                     command=criar_callback(cliente.id)
                 ).pack(pady=5, padx=10)
 
-    # Botão de pesquisa
     ctk.CTkButton(
         coluna_esquerda,
-        text="atualizar",
+        text="pesquisar",
         command=buscar_clientes,
         width=280,
         fg_color="#0EA5E9",
         hover_color="#0284C7",
         font=("Segoe UI", 13, "bold")
-    ).pack(pady=(10, 5), padx=10)
+    ).grid(row=3, column=0, pady=(10, 5), padx=10)
 
-    # Botão de atualizar lista
     ctk.CTkButton(
         coluna_esquerda,
         text="🔄 Atualizar Lista",
@@ -80,14 +81,21 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         fg_color="#10B981",
         hover_color="#059669",
         font=("Segoe UI", 13, "bold")
-    ).pack(pady=(0, 15), padx=10)
+    ).grid(row=4, column=0, pady=(0, 15), padx=10)
 
     coluna_direita = ctk.CTkFrame(conteudo)
-    coluna_direita.pack(side="right", fill="both", expand=True)
+    coluna_direita.grid(row=0, column=1, sticky="nsew")
+    coluna_direita.grid_columnconfigure(0, weight=1)
+    coluna_direita.grid_rowconfigure(1, weight=1)
 
-    ctk.CTkLabel(coluna_direita, text="📑 Detalhes do Cliente", font=("Segoe UI", 18, "bold")).pack(pady=(0, 12))
-    texto_detalhes = ctk.CTkTextbox(coluna_direita, font=("Segoe UI", 13))
-    texto_detalhes.pack(padx=10, pady=5, fill="both", expand=True)
+    ctk.CTkLabel(coluna_direita, text="📑 Detalhes do Cliente", font=("Segoe UI", 18, "bold")).grid(row=0, column=0, pady=(0, 12))
+
+    frame_scroll = ctk.CTkScrollableFrame(coluna_direita, corner_radius=8)
+    frame_scroll.grid(row=1, column=0, padx=10, pady=20, sticky="nsew")
+    frame_scroll.grid_columnconfigure(0, weight=1)
+
+    texto_detalhes = ctk.CTkTextbox(frame_scroll, font=("Segoe UI", 20), wrap="word", width=520, height=400)
+    texto_detalhes.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
     texto_detalhes.configure(state="disabled")
 
     cliente_selecionado = {"id": None}
@@ -235,7 +243,7 @@ def construir_tela_consulta_clientes(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 ).pack(pady=5, padx=10)
 
     botoes_acao = ctk.CTkFrame(coluna_direita)
-    botoes_acao.pack(pady=10)
+    botoes_acao.grid(row=2, column=0, pady=10)
 
     ctk.CTkButton(
         botoes_acao, text="✏️ Atualizar Cliente", command=atualizar_cliente,

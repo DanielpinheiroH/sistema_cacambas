@@ -1,7 +1,3 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-# NOVA LOCAÇÃO - CADASTRO COM GERADOR DE RECIBO
-# ═══════════════════════════════════════════════════════════════════════════════
-
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
@@ -15,32 +11,28 @@ import os
 
 
 def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
-    frame = ctk.CTkFrame(pai, corner_radius=10)
+    frame = ctk.CTkFrame(pai, corner_radius=12)
+    frame.columnconfigure(0, weight=1)
 
-    # ─── Título ─────────────────────────────────────────────────────────
+    # Título
     ctk.CTkLabel(
-        frame,
-        text="📝 Nova Locação",
-        font=("Segoe UI", 20, "bold")
-    ).pack(pady=20)
+        frame, text="📝 Nova Locação", font=("Segoe UI", 22, "bold")
+    ).grid(row=0, column=0, pady=(20, 10))
 
-    # ═══════════════════════════════════════════════════════════════════
-    # BLOCO 1 — DADOS DO CLIENTE
-    # ═══════════════════════════════════════════════════════════════════
+    # Formulário
+    form = ctk.CTkFrame(frame, fg_color="transparent")
+    form.grid(row=1, column=0, padx=20, pady=10)
 
-    entry_cpf = ctk.CTkEntry(frame, placeholder_text="📄 CPF/CNPJ do Cliente", width=400)
-    entry_cpf.pack(pady=5)
+    entry_cpf = ctk.CTkEntry(form, placeholder_text="📄 CPF/CNPJ do Cliente", width=400)
+    entry_nome = ctk.CTkEntry(form, placeholder_text="👤 Nome completo", width=400)
+    entry_telefone = ctk.CTkEntry(form, placeholder_text="📞 Telefone", width=400)
+    entry_endereco = ctk.CTkEntry(form, placeholder_text="🏠 Endereço", width=400)
 
-    entry_nome = ctk.CTkEntry(frame, placeholder_text="👤 Nome completo", width=400)
-    entry_nome.pack(pady=5)
+    entry_cpf.grid(row=0, column=0, pady=4)
+    entry_nome.grid(row=1, column=0, pady=4)
+    entry_telefone.grid(row=2, column=0, pady=4)
+    entry_endereco.grid(row=3, column=0, pady=4)
 
-    entry_telefone = ctk.CTkEntry(frame, placeholder_text="📞 Telefone", width=400)
-    entry_telefone.pack(pady=5)
-
-    entry_endereco = ctk.CTkEntry(frame, placeholder_text="🏠 Endereço", width=400)
-    entry_endereco.pack(pady=5)
-
-    # ─── Botão de busca automática ─────────────────────────────────────
     def buscar_cliente():
         cpf = entry_cpf.get().strip()
         if not cpf:
@@ -61,44 +53,29 @@ def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         else:
             messagebox.showinfo("Não encontrado", "Cliente não encontrado. Preencha os dados abaixo.")
 
-    ctk.CTkButton(frame, text="🔍 Buscar Cliente", command=buscar_cliente, width=200).pack(pady=10)
+    ctk.CTkButton(form, text="🔍 Buscar Cliente", command=buscar_cliente, width=200).grid(row=4, column=0, pady=10)
 
-    # ═══════════════════════════════════════════════════════════════════
-    # BLOCO 2 — SELEÇÃO DE CAÇAMBA E DATA
-    # ═══════════════════════════════════════════════════════════════════
-
-    combo_cacamba = ctk.CTkOptionMenu(frame, values=["Carregando..."])
-    combo_cacamba.pack(pady=10)
+    # Seleção de Caçamba
+    combo_cacamba = ctk.CTkOptionMenu(form, values=["Carregando..."], width=400)
+    combo_cacamba.grid(row=5, column=0, pady=10)
 
     def atualizar_opcoes_cacamba():
         with SessionLocal() as db:
             cacambas = db.query(Cacamba).filter_by(disponivel=True).all()
-
         opcoes = [f"{c.id} - {c.identificacao}" for c in cacambas]
-        if opcoes:
-            combo_cacamba.configure(values=opcoes)
-            combo_cacamba.set("Selecione a caçamba")
-        else:
-            combo_cacamba.configure(values=["Nenhuma disponível"])
-            combo_cacamba.set("Nenhuma disponível")
+        combo_cacamba.configure(values=opcoes if opcoes else ["Nenhuma disponível"])
+        combo_cacamba.set("Selecione a caçamba" if opcoes else "Nenhuma disponível")
 
     atualizar_opcoes_cacamba()
 
-    entry_data_fim = ctk.CTkEntry(frame, placeholder_text="📅 Data de Devolução (dd/mm/aaaa)", width=400)
-    entry_data_fim.pack(pady=5)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # FUNÇÃO: GERAÇÃO DE RECIBO
-    # ═══════════════════════════════════════════════════════════════════
+    entry_data_fim = ctk.CTkEntry(form, placeholder_text="📅 Data de Devolução (dd/mm/aaaa)", width=400)
+    entry_data_fim.grid(row=6, column=0, pady=4)
 
     def gerar_recibo_pdf(cliente, aluguel, cacamba) -> str:
         recibo_dir = os.path.join(os.getcwd(), "recibos")
         os.makedirs(recibo_dir, exist_ok=True)
-
         nome_formatado = cliente.nome.strip().lower().replace(" ", "-")
-        nome_arquivo = f"recibo_{nome_formatado}_{aluguel.id}.pdf"
-        caminho = os.path.join(recibo_dir, nome_arquivo)
-
+        caminho = os.path.join(recibo_dir, f"recibo_{nome_formatado}_{aluguel.id}.pdf")
         c = canvas.Canvas(caminho)
         c.setFont("Helvetica-Bold", 14)
         c.drawString(100, 800, "RECIBO DE LOCAÇÃO DE CAÇAMBA")
@@ -114,12 +91,7 @@ def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         c.drawString(50, 580, "Assinatura: ____________________________")
         c.drawString(50, 560, "Data: ____/____/______")
         c.save()
-
         return caminho
-
-    # ═══════════════════════════════════════════════════════════════════
-    # AÇÃO FINAL: CONFIRMAR LOCAÇÃO
-    # ═══════════════════════════════════════════════════════════════════
 
     def confirmar_locacao():
         cpf = entry_cpf.get().strip()
@@ -146,14 +118,9 @@ def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 if not cliente:
                     cliente = Cliente(nome=nome, cpf_cnpj=cpf, telefone=telefone, endereco=endereco)
                     db.add(cliente)
-                    db.flush()  # cria ID
+                    db.flush()
 
-                aluguel = Aluguel(
-                    cliente_id=cliente.id,
-                    cacamba_id=int(cacamba_id),
-                    data_fim=data_fim,
-                    encerrado=False
-                )
+                aluguel = Aluguel(cliente_id=cliente.id, cacamba_id=int(cacamba_id), data_fim=data_fim, encerrado=False)
                 db.add(aluguel)
 
                 cacamba = db.query(Cacamba).filter_by(id=int(cacamba_id)).first()
@@ -162,9 +129,8 @@ def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
                 db.commit()
 
                 recibo_path = gerar_recibo_pdf(cliente, aluguel, cacamba)
-                messagebox.showinfo("Sucesso", f"✅ Locação registrada com sucesso!\n\n📄 Recibo salvo em:\n{recibo_path}")
+                messagebox.showinfo("Sucesso", f"✅ Locação registrada com sucesso!\n📄 Recibo salvo em:\n{recibo_path}")
 
-                # Limpa campos
                 entry_cpf.delete(0, "end")
                 entry_nome.delete(0, "end")
                 entry_telefone.delete(0, "end")
@@ -175,12 +141,11 @@ def construir_tela_locacao(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         except SQLAlchemyError as e:
             messagebox.showerror("Erro", f"Erro no banco de dados:\n{e}")
 
-    # ─── Botão de confirmação ───────────────────────────────────────────
     ctk.CTkButton(
-        frame,
+        form,
         text="✅ Confirmar Aluguel",
         command=confirmar_locacao,
         width=250
-    ).pack(pady=20)
+    ).grid(row=7, column=0, pady=20)
 
     return frame

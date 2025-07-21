@@ -12,19 +12,20 @@ from app.models import Cacamba
 
 def construir_tela_cacamba(pai: ctk.CTkFrame) -> ctk.CTkFrame:
     frame = ctk.CTkFrame(pai, corner_radius=12)
-    # Não chame .pack() aqui
-# Apenas crie o frame e retorne
+    frame.grid_columnconfigure(0, weight=1)
+    frame.grid_rowconfigure(1, weight=1)
 
     # Título
     ctk.CTkLabel(
         frame,
         text="🗂️ Formulário de Cadastro de Caçamba",
         font=("Segoe UI", 26, "bold")
-    ).pack(pady=(10, 25))
+    ).grid(row=0, column=0, pady=(10, 25), sticky="n")
 
     # Área de formulários (container interno)
     form_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    form_frame.pack(pady=10)
+    form_frame.grid(row=1, column=0, pady=10, padx=10, sticky="nsew")
+    form_frame.grid_columnconfigure((0, 1), weight=1)
 
     # Campo: Identificação
     lbl_id = ctk.CTkLabel(form_frame, text="🆔 Identificação:", font=("Segoe UI", 14))
@@ -50,7 +51,7 @@ def construir_tela_cacamba(pai: ctk.CTkFrame) -> ctk.CTkFrame:
 
     # Mensagem de status
     status_msg = ctk.CTkLabel(frame, text="", font=("Segoe UI", 13))
-    status_msg.pack(pady=5)
+    status_msg.grid(row=2, column=0, pady=(5, 0), sticky="n")
 
     def exibir_status(msg, cor="#10B981"):
         status_msg.configure(text=msg, text_color=cor)
@@ -100,6 +101,7 @@ def construir_tela_cacamba(pai: ctk.CTkFrame) -> ctk.CTkFrame:
         hover_color="#2563EB",
         text_color="white",
         corner_radius=10
-    ).pack(pady=(20, 10))
+    ).grid(row=3, column=0, pady=(20, 30), sticky="n")
 
     return frame
+

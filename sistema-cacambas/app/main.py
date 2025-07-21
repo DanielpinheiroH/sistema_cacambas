@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # SISTEMA DE CAÇAMBAS - TELA PRINCIPAL
 # Desenvolvido com CustomTkinter + SQLAlchemy
-# Código refatorado e estilizado com boas práticas profissionais
+# Layout totalmente responsivo (100% grid)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 import customtkinter as ctk
@@ -18,16 +18,13 @@ from .views.historico_view import construir_tela_historico
 from app.views.consulta_cliente_view import construir_tela_consulta_clientes
 from sqlalchemy.orm import joinedload
 
-
-telas = {}  # Dicionário que armazena todas as views
-
+telas = {}
 
 def mostrar_tela(nome: str) -> None:
     if nome in telas and telas[nome].winfo_exists():
         telas[nome].tkraise()
     else:
         print(f"⚠️ Tela '{nome}' não encontrada ou foi destruída.")
-
 
 def mostrar_dashboard(frame: ctk.CTkFrame) -> None:
     frame.configure(fg_color="#F9FAFB")
@@ -103,7 +100,6 @@ def mostrar_dashboard(frame: ctk.CTkFrame) -> None:
             ctk.CTkButton(linha, text=btn_texto, width=90, height=30, font=("Segoe UI", 12), fg_color=btn_cor,
                           hover_color=btn_hover, command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)).grid(row=0, column=len(dados), padx=4)
 
-
 def alternar_status_pagamento(aluguel_id: int, frame: ctk.CTkFrame):
     with SessionLocal() as db:
         aluguel = db.query(Aluguel).get(aluguel_id)
@@ -112,10 +108,12 @@ def alternar_status_pagamento(aluguel_id: int, frame: ctk.CTkFrame):
             db.commit()
     mostrar_dashboard(frame)
 
-
 def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
     for widget in frame.winfo_children():
         widget.destroy()
+
+    frame.grid_rowconfigure(2, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
 
     with SessionLocal() as db:
         alugueis_ativos = (
@@ -126,21 +124,38 @@ def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
             .all()
         )
 
-    ctk.CTkLabel(frame, text="🚛 Caçambas Alugadas (Ativas)", font=("Segoe UI", 22, "bold")).pack(pady=10)
+    ctk.CTkLabel(
+        frame,
+        text="🚛 Caçambas Alugadas (Ativas)",
+        font=("Segoe UI", 22, "bold")
+    ).grid(row=0, column=0, pady=(20, 10), sticky="n")
 
+    # Cabeçalho
     cabecalho = ctk.CTkFrame(frame, fg_color="#dddddd")
-    cabecalho.pack(fill="x", padx=10)
-    colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Endereço da Obra","Pago?", "Ação"]
-    larguras = [40, 160, 80, 90, 90, 240, 80, 80]
+    cabecalho.grid(row=1, column=0, sticky="ew", padx=10)
+    cabecalho.grid_columnconfigure(tuple(range(8)), weight=1)
 
-    for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
-        ctk.CTkLabel(cabecalho, text=titulo, width=largura, anchor="center", font=("Segoe UI", 12, "bold")).grid(row=0, column=i, padx=2, pady=4)
+    colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Endereço da Obra", "Pago?", "Ação"]
 
-    corpo = ctk.CTkScrollableFrame(frame, height=320)
-    corpo.pack(fill="both", expand=True, padx=10, pady=5)
+    for i, titulo in enumerate(colunas):
+        ctk.CTkLabel(
+            cabecalho,
+            text=titulo,
+            anchor="center",
+            font=("Segoe UI", 12, "bold")
+        ).grid(row=0, column=i, padx=2, pady=4, sticky="nsew")
+
+    # Corpo com scroll
+    corpo = ctk.CTkScrollableFrame(frame, height=400)
+    corpo.grid(row=2, column=0, sticky="nsew", padx=10, pady=(5, 20))
+    corpo.grid_columnconfigure(0, weight=1)
 
     if not alugueis_ativos:
-        ctk.CTkLabel(corpo, text="⚠️ Nenhuma caçamba está alugada no momento.", font=("Segoe UI", 13)).pack(pady=20)
+        ctk.CTkLabel(
+            corpo,
+            text="⚠️ Nenhuma caçamba está alugada no momento.",
+            font=("Segoe UI", 13)
+        ).grid(row=0, column=0, pady=20)
         return
 
     for idx, aluguel in enumerate(alugueis_ativos):
@@ -157,30 +172,34 @@ def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
         dados = [str(aluguel.id), nome_cliente, identificacao, inicio, fim, endereco_obra, pago]
 
         linha = ctk.CTkFrame(corpo, fg_color="#f6f6f6" if idx % 2 == 0 else "#e2e2e2")
-        linha.pack(fill="x")
+        linha.grid(row=idx, column=0, sticky="ew", pady=1)
+        linha.grid_columnconfigure(tuple(range(len(dados) + 1)), weight=1)
 
-        for i, (valor, largura) in enumerate(zip(dados, larguras)):
-            ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 12)).grid(row=0, column=i, padx=2, pady=4)
-            ctk.CTkButton(
+        for i, valor in enumerate(dados):
+            ctk.CTkLabel(
                 linha,
-                text=btn_texto,
-                width=90,
-                height=30,
-                font=("Segoe UI", 12),
-                fg_color=btn_cor,
-                hover_color=btn_hover,
-                command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)
-            ).grid(row=0, column=len(dados), padx=4)
+                text=valor,
+                anchor="center",
+                font=("Segoe UI", 12)
+            ).grid(row=0, column=i, padx=2, pady=4, sticky="nsew")
+
+        ctk.CTkButton(
+            linha,
+            text=btn_texto,
+            font=("Segoe UI", 12),
+            fg_color=btn_cor,
+            hover_color=btn_hover,
+            command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)
+        ).grid(row=0, column=len(dados), padx=4, sticky="nsew")
+
 
 def ir_para_cacambas_alugadas():
     mostrar_apenas_cacambas_alugadas(telas["ver_cacambas"])
     mostrar_tela("ver_cacambas")
 
-
 def ir_para_dashboard():
     mostrar_dashboard(telas["dashboard"])
     mostrar_tela("dashboard")
-
 
 def main() -> None:
     init_db()
@@ -189,10 +208,15 @@ def main() -> None:
 
     root = ctk.CTk()
     root.title("Sistema de Caçambas - Menu Principal")
-    root.geometry("440x650")
+    root.geometry("1000x720")
+    root.minsize(800, 600)
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
 
     container = ctk.CTkFrame(root)
-    container.pack(expand=True, fill="both")
+    container.grid(row=0, column=0, sticky="nsew")
+    container.rowconfigure(0, weight=1)
+    container.columnconfigure(0, weight=1)
 
     telas.update({
         "dashboard": ctk.CTkFrame(container),
@@ -206,31 +230,42 @@ def main() -> None:
         "ver_cacambas": ctk.CTkFrame(container)
     })
 
-    mostrar_dashboard(telas["dashboard"])
-
     for tela in telas.values():
-        tela.place(relx=0, rely=0, relwidth=1, relheight=1)
+        tela.grid(row=0, column=0, sticky="nsew")
 
-    botoes_frame = ctk.CTkFrame(root, corner_radius=12)
-    botoes_frame.pack(pady=10, padx=20, fill="x")
+    mostrar_dashboard(telas["dashboard"])
+    mostrar_tela("dashboard")
 
     botoes = [
-        ("📊 Ir para Dashboard", lambda: ir_para_dashboard()),
-        ("📋 Ver Caçambas Alugadas", lambda: ir_para_cacambas_alugadas()),
-        ("📋 Novo Cliente", lambda: mostrar_tela("cliente")),
-        ("📆 Novo Aluguel", lambda: mostrar_tela("aluguel")),
-        ("↩️ Devoluções", lambda: mostrar_tela("devolucao")),
+        ("📊 Dashboard", lambda: ir_para_dashboard()),
+        ("🚛 Caçambas Alugadas", lambda: ir_para_cacambas_alugadas()),
+        ("👤 Cliente", lambda: mostrar_tela("cliente")),
+        ("➕ Aluguel", lambda: mostrar_tela("aluguel")),
+        ("↩️ Devolução", lambda: mostrar_tela("devolucao")),
         ("📄 Histórico", lambda: mostrar_tela("historico")),
-        ("📋 Clientes (Consulta)", lambda: mostrar_tela("consulta_clientes")),
-        ("🚛 Caçambas", lambda: mostrar_tela("cacamba")),
+        ("🔍 Clientes", lambda: mostrar_tela("consulta_clientes")),
+        ("⚙️ Caçambas", lambda: mostrar_tela("cacamba")),
     ]
 
-    for texto, comando in botoes:
-        ctk.CTkButton(botoes_frame, text=texto, command=comando, width=250).pack(pady=5)
+    botoes_frame = ctk.CTkFrame(root)
+    botoes_frame.grid(row=1, column=0, pady=10)
+    botoes_frame.columnconfigure(tuple(range(len(botoes))), weight=1)
 
-    mostrar_tela("dashboard")
+    for idx, (texto, comando) in enumerate(botoes):
+        ctk.CTkButton(
+            botoes_frame,
+            text=texto,
+            command=comando,
+            width=130,
+            height=38,
+            font=("Segoe UI", 12),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            text_color="white",
+            corner_radius=8
+        ).grid(row=0, column=idx, padx=6, pady=5, sticky="ew")
+
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
