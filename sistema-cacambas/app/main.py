@@ -97,7 +97,7 @@ def mostrar_dashboard(frame: ctk.CTkFrame) -> None:
             for i, (valor, largura) in enumerate(zip(dados, larguras)):
                 ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 12)).grid(row=0, column=i, padx=2, pady=4)
 
-            ctk.CTkButton(linha, text=btn_texto, width=90, height=30, font=("Segoe UI", 12), fg_color=btn_cor,
+            ctk.CTkButton(linha, text=btn_texto, width=60, height=30, font=("Segoe UI", 12), fg_color=btn_cor,
                           hover_color=btn_hover, command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)).grid(row=0, column=len(dados), padx=4)
 
 def alternar_status_pagamento(aluguel_id: int, frame: ctk.CTkFrame):
@@ -130,67 +130,73 @@ def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
         font=("Segoe UI", 22, "bold")
     ).grid(row=0, column=0, pady=(20, 10), sticky="n")
 
+    colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Endereço", "Pago", "Ação"]
+    larguras = [50, 160, 80, 90, 90, 300, 60, 60]
+
     # Cabeçalho
     cabecalho = ctk.CTkFrame(frame, fg_color="#dddddd")
     cabecalho.grid(row=1, column=0, sticky="ew", padx=10)
-    cabecalho.grid_columnconfigure(tuple(range(8)), weight=1)
-
-    colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Endereço da Obra", "Pago?", "Ação"]
-
-    for i, titulo in enumerate(colunas):
+    for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
         ctk.CTkLabel(
             cabecalho,
             text=titulo,
+            width=largura,
             anchor="center",
             font=("Segoe UI", 12, "bold")
-        ).grid(row=0, column=i, padx=2, pady=4, sticky="nsew")
+        ).grid(row=0, column=i, padx=2, pady=6)
 
-    # Corpo com scroll
-    corpo = ctk.CTkScrollableFrame(frame, height=400)
+    corpo = ctk.CTkScrollableFrame(frame)
     corpo.grid(row=2, column=0, sticky="nsew", padx=10, pady=(5, 20))
     corpo.grid_columnconfigure(0, weight=1)
 
     if not alugueis_ativos:
         ctk.CTkLabel(
             corpo,
-            text="⚠️ Nenhuma caçamba está alugada no momento.",
+            text="⚠️ Nenhuma caçamba está alugada.",
             font=("Segoe UI", 13)
         ).grid(row=0, column=0, pady=20)
         return
 
     for idx, aluguel in enumerate(alugueis_ativos):
-        nome_cliente = aluguel.cliente.nome if aluguel.cliente else "?"
-        identificacao = aluguel.cacamba.identificacao if aluguel.cacamba else "?"
+        nome = aluguel.cliente.nome if aluguel.cliente else "—"
+        id_cacamba = aluguel.cacamba.identificacao if aluguel.cacamba else "—"
         inicio = aluguel.data_inicio.strftime("%d/%m/%Y")
         fim = aluguel.data_fim.strftime("%d/%m/%Y")
-        endereco_obra = aluguel.endereco_obra or "—"
+        endereco = aluguel.endereco_obra or "—"
         pago = "✅" if aluguel.pago else "❌"
-        btn_texto = "💰 Marcar" if not aluguel.pago else "↩️ Estornar"
+        btn_texto = "💰" if not aluguel.pago else "↩️"
         btn_cor = "#10B981" if not aluguel.pago else "#F59E0B"
         btn_hover = "#059669" if not aluguel.pago else "#D97706"
 
-        dados = [str(aluguel.id), nome_cliente, identificacao, inicio, fim, endereco_obra, pago]
+        dados = [str(aluguel.id), nome, id_cacamba, inicio, fim, endereco, pago]
 
-        linha = ctk.CTkFrame(corpo, fg_color="#f6f6f6" if idx % 2 == 0 else "#e2e2e2")
-        linha.grid(row=idx, column=0, sticky="ew", pady=1)
-        linha.grid_columnconfigure(tuple(range(len(dados) + 1)), weight=1)
+        linha = ctk.CTkFrame(corpo, fg_color="#ffffff" if idx % 2 == 0 else "#f1f1f1")
+        linha.grid(row=idx, column=0, sticky="ew", padx=2, pady=1)
 
-        for i, valor in enumerate(dados):
+        for i, (valor, largura) in enumerate(zip(dados, larguras)):
             ctk.CTkLabel(
                 linha,
                 text=valor,
+                width=largura,
                 anchor="center",
-                font=("Segoe UI", 12)
-            ).grid(row=0, column=i, padx=2, pady=4, sticky="nsew")
+                font=("Segoe UI", 11)
+            ).grid(row=0, column=i, padx=2, pady=4)
 
         ctk.CTkButton(
             linha,
             text=btn_texto,
-            font=("Segoe UI", 12),
+            font=("Segoe UI", 10),
+            width=larguras[-1],
+            height=26,
             fg_color=btn_cor,
             hover_color=btn_hover,
             command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)
-        ).grid(row=0, column=len(dados), padx=4, sticky="nsew")
+        ).grid(row=0, column=len(dados), padx=2, pady=4)
+
+
+
+
+
 
 
 def ir_para_cacambas_alugadas():
