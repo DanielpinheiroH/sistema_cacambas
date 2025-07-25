@@ -9,7 +9,7 @@ DB_PATH = os.path.join(BASE_DIR, "sistema.db")  # <-- banco na raiz do projeto
 
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False}, echo=False)
 
-SessionLocal = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 Base = declarative_base()
 

@@ -1,8 +1,17 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Date
 from sqlalchemy.orm import relationship
 from .database import Base
 import datetime
 
+class UsuarioSistema(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome_empresa = Column(String, nullable=False)
+    email = Column(String, unique=True)
+    token_acesso = Column(String, unique=True, nullable=False)
+    ativo = Column(Boolean, default=True)
+    validade_licenca = Column(Date, nullable=True)
 class Cliente(Base):
     __tablename__ = 'clientes'
     id = Column(Integer, primary_key=True)

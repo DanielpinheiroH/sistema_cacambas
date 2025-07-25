@@ -17,6 +17,7 @@ from .views.locacao_view import construir_tela_locacao
 from .views.historico_view import construir_tela_historico
 from app.views.consulta_cliente_view import construir_tela_consulta_clientes
 from sqlalchemy.orm import joinedload
+from .views.token_view import TokenView
 
 telas = {}
 
@@ -194,11 +195,6 @@ def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
         ).grid(row=0, column=len(dados), padx=2, pady=4)
 
 
-
-
-
-
-
 def ir_para_cacambas_alugadas():
     mostrar_apenas_cacambas_alugadas(telas["ver_cacambas"])
     mostrar_tela("ver_cacambas")
@@ -224,6 +220,12 @@ def main() -> None:
     container.rowconfigure(0, weight=1)
     container.columnconfigure(0, weight=1)
 
+    def on_token_validado(cliente):
+        # cliente["id"], cliente["empresa"] disponíveis aqui
+        mostrar_dashboard(telas["dashboard"])
+        mostrar_tela("dashboard")
+        botoes_frame.grid()
+
     telas.update({
         "dashboard": ctk.CTkFrame(container),
         "cliente": construir_tela_cliente(container),
@@ -239,8 +241,11 @@ def main() -> None:
     for tela in telas.values():
         tela.grid(row=0, column=0, sticky="nsew")
 
-    mostrar_dashboard(telas["dashboard"])
-    mostrar_tela("dashboard")
+    token_view = TokenView(container, on_token_validado)
+    token_view.grid(row=0, column=0, sticky="nsew")
+
+    #mostrar_dashboard(telas["dashboard"])
+    #mostrar_tela("dashboard")
 
     botoes = [
         ("📊 Dashboard", lambda: ir_para_dashboard()),
@@ -270,6 +275,9 @@ def main() -> None:
             text_color="white",
             corner_radius=8
         ).grid(row=0, column=idx, padx=6, pady=5, sticky="ew")
+
+    # ⛔️ Oculta os botões até validar o token
+    botoes_frame.grid_remove()
 
     root.mainloop()
 
