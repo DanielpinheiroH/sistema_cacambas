@@ -1,15 +1,26 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+import requests
+import sys
+import os
 
-from app.models import UsuarioSistema
-from app.database import SessionLocal, engine, Base
-from fastapi.middleware.cors import CORSMiddleware
+# Adiciona o caminho da pasta Controle_sistema_cacambas ao sys.path
+CAMINHO_USUARIOS = os.path.join(os.path.expanduser("~"), "Desktop", "Controle_sistema_cacambas")
+if CAMINHO_USUARIOS not in sys.path:
+    sys.path.append(CAMINHO_USUARIOS)
 
+from usuarios_database import UsuarioSessionLocal
+from usuarios_models import UsuarioSistema  # Usaremos apenas este modelo
+
+# Caminho para o banco de dados dos usuários
+CAMINHO_BANCO = os.path.join(CAMINHO_USUARIOS, "usuarios.db")
+
+# 🔹 Inicializa a aplicação
 app = FastAPI()
 
-# Middleware CORS para integração com o app desktop
+# 🔹 Middleware CORS para permitir integração com o app desktop
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,37 +29,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Criação das tabelas
-Base.metadata.create_all(bind=engine)
 
-# Modelo da requisição de token
+# 🔹 Modelo da requisição de token
 class TokenRequest(BaseModel):
     token: str
 
-# Rota para validar o token
+# 🔹 Rota para validar o token
 @app.post("/validar_token")
 def validar_token(data: TokenRequest):
-    with SessionLocal() as db:
+    with UsuarioSessionLocal() as db:
         usuario = db.query(UsuarioSistema).filter(
-            UsuarioSistema.token_acesso == data.token
+            UsuarioSistema.token == data.token
         ).first()
 
-    if usuario is None:
+    if not usuario:
+        print("❌ Token não encontrado:", data.token)
         raise HTTPException(status_code=401, detail="Token inválido.")
 
-    if usuario.ativo is False:
+    if not usuario.ativo:
+        print(f"🔒 Usuário inativo: {usuario.empresa}")
         raise HTTPException(status_code=403, detail="Acesso bloqueado.")
 
-    # ✅ Solução definitiva com getattr
-    validade = getattr(usuario, "validade_licenca", None)
+    validade = usuario.validade
+    hoje = date.today()
 
-    if isinstance(validade, date) and validade < date.today():
+    if not validade:
+        print(f"⚠️ Usuário sem validade definida: {usuario.empresa}")
+        raise HTTPException(status_code=403, detail="Licença expirada ou não cadastrada.")
+
+    if validade < hoje:
+        print(f"⛔ Licença expirada em {validade} para {usuario.empresa}")
         raise HTTPException(status_code=403, detail="Licença expirada.")
 
+    print(f"✅ Token validado para {usuario.empresa}")
     return {
         "id": usuario.id,
-        "empresa": usuario.nome_empresa,
-        "token": usuario.token_acesso
+        "empresa": usuario.empresa,
+        "token": usuario.token,
+        "validade": validade
     }
 
-print("rodou essa porra!")
+print("🔥 Servidor rodando nessa porra com banco em:", CAMINHO_BANCO)

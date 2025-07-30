@@ -11,7 +11,7 @@ class UsuarioSistema(Base):
     email = Column(String, unique=True)
     token_acesso = Column(String, unique=True, nullable=False)
     ativo = Column(Boolean, default=True)
-    validade_licenca = Column(Date, nullable=True)
+    validade = Column(Date)
 class Cliente(Base):
     __tablename__ = 'clientes'
     id = Column(Integer, primary_key=True)

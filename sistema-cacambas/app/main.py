@@ -6,10 +6,8 @@
 
 import customtkinter as ctk
 from datetime import datetime, timedelta
-
 from .database import init_db, SessionLocal
 from .models import Cacamba, Aluguel
-
 from .views.cliente_view import construir_tela_cliente
 from .views.cacamba_view import construir_tela_cacamba
 from .views.aluguel_view import construir_tela_aluguel, construir_tela_devolucao
@@ -18,6 +16,10 @@ from .views.historico_view import construir_tela_historico
 from app.views.consulta_cliente_view import construir_tela_consulta_clientes
 from sqlalchemy.orm import joinedload
 from .views.token_view import TokenView
+from app.utils import cliente_info
+from app.utils.firebase_upload import upload_automatico, iniciar_agendamento
+from app.utils.firebase_upload import baixar_backup_do_cliente
+import atexit
 
 telas = {}
 
@@ -220,11 +222,19 @@ def main() -> None:
     container.rowconfigure(0, weight=1)
     container.columnconfigure(0, weight=1)
 
+
     def on_token_validado(cliente):
-        # cliente["id"], cliente["empresa"] disponíveis aqui
+        cliente_info.cliente.clear()
+        cliente_info.cliente.update(cliente)  # atualiza o mesmo dicionário, mantém a referência
+        print("🔑 Token validado com sucesso!")
+        baixar_backup_do_cliente()
+        atexit.register(upload_automatico)
+        iniciar_agendamento(30)
         mostrar_dashboard(telas["dashboard"])
         mostrar_tela("dashboard")
         botoes_frame.grid()
+
+        
 
     telas.update({
         "dashboard": ctk.CTkFrame(container),
@@ -278,6 +288,7 @@ def main() -> None:
 
     # ⛔️ Oculta os botões até validar o token
     botoes_frame.grid_remove()
+
 
     root.mainloop()
 

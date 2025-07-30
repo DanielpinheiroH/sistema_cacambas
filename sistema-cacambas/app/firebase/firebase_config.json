@@ -1,0 +1,14 @@
+{
+  "type": "service_account",
+  "project_id": "sistema-cacambas-backup-ea2ac",
+  "private_key_id": "27ab7d79615cf8112ff727c1fac19f5f4a082706",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCxHxTLZgi8p75H\nRHLtOd0ZCInL6BDviW4sYOiVCShVSsN5ibD99UJdezbs2AncbXEo9Bd/VAcDHD2X\nxUNaDRkVaLFkNuJ2umnc9GzBk0FVvJ5CW/HPBY7z9sxPACS0TAbR96YMnjPXTvOQ\nBw/UlJ8UJIax43bKgS2Lwy/lvWRhgtGeEwadGjw9fgQFayIt/SE8Wq8mYPqoWROO\nOnS+cPov7rNQGPoJU6Bv+a6GXJaFA+Pvmzvd/APL/E+p9XeGfEf/6uItA9X36Rv5\n3nrYjomRo8cy4qg36dIKeslZ3k8BEWXA70tFduAlelzcNlS0K4jS92Cy5cqR85ZK\nXi+7rR2BAgMBAAECggEAK4hLmJg54oBJ5IM+ye50WIBAOeUOMIlzEiY5U9P93US0\nWY1NeoWKq6YqgDiy58HgU6P2mH1jAdExlDlQDfR1K01heBODQpIbjcpnZoZWQwfK\nT94ARxUDJxQL8AjFfKjI7lczMRu6+xq1AzuxGNr0ZEN79YHGAwyP0K+G+Ky9XLed\nIDcxqU8PkeYTVOAJHMnzrCj44sMuVDq3mg7g1HNLW2pUp1VwG3z8POv61zbrp5kJ\nZT1WSmEW4qGaTXjwZyY1mRrTXeOeETFhDS8qkr06/3tepD46bgMYW/kyfinELSOt\nOgG8xp6N6LMmibsSDgZ57v9TUwXplJu6gO9qP9myqQKBgQDeJ8WSS5H8q2LxbD0q\n0WRY9JvhTHxCi0NqYzDi1oxPdEcEIxNI6sNjaUwnQzJ+v5chlGG64o/whZg5/wPe\n8WufZDuvKimTJ4HYPp5fCKkP34uY7Um7Xr21IEcxenM8oKWjfi9k/0MaDo/zbDW0\nJ439ZPuHot/FU6RLZNNNABY0DQKBgQDMGvOCN5Eupy2Hag7rRxeeaGVI6qLI4+yG\nHoOLUiEkyBq34fsfspdlCeqmRl7mcDff58fRtVGwN4wAYrKAfqVaBOYQJ2Y3pOeM\n/X9ybHauE4u6/RYtSJdg2WzjiuTdMw5bRRAJXFwujTU7vQsIXLyRoN6npyoMe4Bs\ntv4ZwkHuRQKBgAgov8niuqbkCItDZW+4Jw5ZVYxNydaL1NsIb5g1NwwIAj+1phSs\ngqaZDHH4ttcO5FcYYwqBHbZAwdmHczXx+fjtrn99de9wqQUvL5Pf9o2dsTvZozad\ngSww1kyL6cWVROAfV1BHS8ieNk1DcSl/tmhTGCXgJoXRz5vxRQ1z7lzVAoGBAI8S\nxWeedBLz9aJa4iJjL1dHbthyQbH4s7BAa42aAMm7y57itho+IoodLXNpGNUIDOLT\nouqJ471W8rjCdsZEALzdejgQpkKTQg0/Fbur9HWKFgT5rDYKELM/Nmk6z7uPMp0g\nCGHHcIbhTVOW7Mjr2PNshSeYso0Vday/idecqILRAoGAc+o/rqGSXy08r/rnLfTq\nt47+zNBJScwFWd2u/JZr0+R1R84gbHKNBj/f3LRwlH0y++wl7bsu1uvZIO0ggvOq\nw7ijwAUfFrSR63pbZbozAp5xd5FkTZa1xq8x4jHm1myy6grdBbH8Kx3lHIesWbcd\noGMcwgKG7KZMgtDQtDFOK8o=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@sistema-cacambas-backup-ea2ac.iam.gserviceaccount.com",
+  "client_id": "113453020736360403525",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sistema-cacambas-backup-ea2ac.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com",
+  "storageBucket": "sistema-cacambas-backup-ea2ac.firebasestorage.app"
+}
