@@ -2,25 +2,39 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import date
-import requests
-import sys
+import firebase_admin
+from firebase_admin import credentials, firestore
 import os
+import json
 
-# Adiciona o caminho da pasta Controle_sistema_cacambas ao sys.path
-CAMINHO_USUARIOS = os.path.join(os.path.expanduser("~"), "Desktop", "Controle_sistema_cacambas")
-if CAMINHO_USUARIOS not in sys.path:
-    sys.path.append(CAMINHO_USUARIOS)
+# 🔹 Inicializa Firebase a partir de arquivo local ou variável de ambiente
+firebase_json = os.getenv("FIREBASE_CONFIG")
 
-from usuarios_database import UsuarioSessionLocal
-from usuarios_models import UsuarioSistema  # Usaremos apenas este modelo
+if not firebase_admin._apps:
+    try:
+        if firebase_json:
+            # Modo produção (ex: Render.com)
+            cred_dict = json.loads(firebase_json)
+            cred = credentials.Certificate(cred_dict)
+        else:
+            # Modo local (ex: teste na sua máquina)
+            caminho_cred_local = os.path.join(
+                os.path.dirname(__file__),
+                "../app/firebase/firebase_config.json"
+            )
+            cred = credentials.Certificate(caminho_cred_local)
 
-# Caminho para o banco de dados dos usuários
-CAMINHO_BANCO = os.path.join(CAMINHO_USUARIOS, "usuarios.db")
+        firebase_admin.initialize_app(cred)
+        db_firestore = firestore.client()
+        print("✅ Firebase inicializado com sucesso!")
+    except Exception as e:
+        print("❌ Erro ao inicializar Firebase:", e)
+        raise Exception("Erro ao inicializar Firebase.")
 
-# 🔹 Inicializa a aplicação
+# 🔹 Inicializa FastAPI
 app = FastAPI()
 
-# 🔹 Middleware CORS para permitir integração com o app desktop
+# 🔹 Middleware CORS para integração com o app desktop
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,44 +43,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# 🔹 Modelo da requisição de token
+# 🔹 Modelo para requisição de token
 class TokenRequest(BaseModel):
     token: str
 
-# 🔹 Rota para validar o token
+# 🔹 Rota para validar token via Firestore
 @app.post("/validar_token")
 def validar_token(data: TokenRequest):
-    with UsuarioSessionLocal() as db:
-        usuario = db.query(UsuarioSistema).filter(
-            UsuarioSistema.token == data.token
-        ).first()
+    try:
+        docs = db_firestore.collection("usuarios").where("token", "==", data.token).stream()
+        usuario = None
+        for doc in docs:
+            usuario = doc.to_dict()
+            break
 
-    if not usuario:
-        print("❌ Token não encontrado:", data.token)
-        raise HTTPException(status_code=401, detail="Token inválido.")
+        if not usuario:
+            print("❌ Token não encontrado:", data.token)
+            raise HTTPException(status_code=401, detail="Token inválido.")
 
-    if not usuario.ativo:
-        print(f"🔒 Usuário inativo: {usuario.empresa}")
-        raise HTTPException(status_code=403, detail="Acesso bloqueado.")
+        if not usuario.get("ativo", False):
+            print(f"🔒 Usuário inativo: {usuario.get('empresa')}")
+            raise HTTPException(status_code=403, detail="Usuário inativo.")
 
-    validade = usuario.validade
-    hoje = date.today()
+        validade = usuario.get("validade")
+        if not validade:
+            print(f"⚠️ Usuário sem validade: {usuario.get('empresa')}")
+            raise HTTPException(status_code=403, detail="Licença não cadastrada.")
 
-    if not validade:
-        print(f"⚠️ Usuário sem validade definida: {usuario.empresa}")
-        raise HTTPException(status_code=403, detail="Licença expirada ou não cadastrada.")
+        hoje = date.today()
+        if validade.date() < hoje:
+            print(f"⛔ Licença expirada para {usuario.get('empresa')} em {validade}")
+            raise HTTPException(status_code=403, detail="Licença expirada.")
 
-    if validade < hoje:
-        print(f"⛔ Licença expirada em {validade} para {usuario.empresa}")
-        raise HTTPException(status_code=403, detail="Licença expirada.")
+        print(f"✅ Token validado com sucesso para {usuario.get('empresa')}")
 
-    print(f"✅ Token validado para {usuario.empresa}")
-    return {
-        "id": usuario.id,
-        "empresa": usuario.empresa,
-        "token": usuario.token,
-        "validade": validade
-    }
+        return {
+            "empresa": usuario.get("empresa"),
+            "email": usuario.get("email", ""),
+            "telefone": usuario.get("telefone", ""),
+            "token": usuario.get("token"),
+            "validade": validade.isoformat()
+        }
 
-print("🔥 Servidor rodando nessa porra com banco em:", CAMINHO_BANCO)
+    except Exception as e:
+        print("❌ Erro ao validar token:", e)
+        raise HTTPException(status_code=500, detail="Erro interno na validação.")
