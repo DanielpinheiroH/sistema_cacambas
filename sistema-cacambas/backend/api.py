@@ -88,3 +88,7 @@ def validar_token(data: TokenRequest):
     except Exception as e:
         print("❌ Erro ao validar token:", e)
         raise HTTPException(status_code=500, detail="Erro interno na validação.")
+
+@app.get("/")
+def root():
+    return {"status": "online"}
