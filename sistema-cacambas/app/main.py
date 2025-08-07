@@ -111,34 +111,168 @@ def alternar_status_pagamento(aluguel_id: int, frame: ctk.CTkFrame):
             db.commit()
     mostrar_dashboard(frame)
 
-def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
-    for widget in frame.winfo_children():
-        widget.destroy()
+def buscar_historico_por_cacamba(identificacao: str, frame: ctk.CTkFrame):
+    if hasattr(frame, "frame_resultado") and frame.frame_resultado:
+        frame.frame_resultado.destroy()
 
-    frame.grid_rowconfigure(2, weight=1)
-    frame.grid_columnconfigure(0, weight=1)
+    if not identificacao:
+        resultado = ctk.CTkLabel(frame, text="⚠️ Informe a identificação da caçamba.", font=("Segoe UI", 12))
+        resultado.grid(row=4, column=0, pady=5)
+        frame.frame_resultado = resultado
+        return
 
     with SessionLocal() as db:
-        alugueis_ativos = (
+        cacamba = db.query(Cacamba).filter(Cacamba.identificacao == identificacao).first()
+
+        if not cacamba:
+            resultado = ctk.CTkLabel(frame, text="⚠️ Caçamba não encontrada.", font=("Segoe UI", 12))
+            resultado.grid(row=4, column=0, pady=5)
+            frame.frame_resultado = resultado
+            return
+
+        alugueis = (
             db.query(Aluguel)
-            .options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
-            .filter(Aluguel.encerrado == False)
+            .options(joinedload(Aluguel.cliente))
+            .filter(Aluguel.id_cacamba == cacamba.id)
             .order_by(Aluguel.data_inicio.desc())
             .all()
         )
 
+    frame.frame_resultado = ctk.CTkScrollableFrame(frame, height=200)
+    frame.frame_resultado.grid(row=4, column=0, columnspan=1, sticky="nsew", padx=10, pady=(5, 20))
+
+    if not alugueis:
+        ctk.CTkLabel(frame.frame_resultado, text="⚠️ Nenhum histórico encontrado.", font=("Segoe UI", 12)).pack(pady=5)
+        return
+
+    # Cabeçalho da tabela
+    cabecalho = ctk.CTkFrame(frame.frame_resultado, fg_color="#ddd")
+    cabecalho.pack(fill="x")
+    colunas = ["ID", "Cliente", "Início", "Fim", "Pago", "Status", "Endereço"]
+    larguras = [50, 150, 100, 100, 60, 80, 300]
+
+    for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
+        ctk.CTkLabel(cabecalho, text=titulo, width=largura, anchor="center", font=("Segoe UI", 12, "bold")).grid(row=0, column=i, padx=2, pady=4)
+
+    for idx, aluguel in enumerate(alugueis):
+        cliente = aluguel.cliente.nome if aluguel.cliente else "—"
+        inicio = aluguel.data_inicio.strftime("%d/%m/%Y")
+        fim = aluguel.data_fim.strftime("%d/%m/%Y")
+        pago = "✅" if aluguel.pago else "❌"
+        status = "🔴 Ativa" if not aluguel.encerrado else "✅ Finalizado"
+        endereco = aluguel.endereco_obra or "—"
+
+        valores = [str(aluguel.id), cliente, inicio, fim, pago, status, endereco]
+
+        linha = ctk.CTkFrame(frame.frame_resultado, fg_color="#f9f9f9" if idx % 2 == 0 else "#e2e2e2")
+        linha.pack(fill="x")
+
+        for i, (valor, largura) in enumerate(zip(valores, larguras)):
+            ctk.CTkLabel(linha, text=valor, width=largura, anchor="center", font=("Segoe UI", 11)).grid(row=0, column=i, padx=2, pady=3)
+
+
+
+
+def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
+    for widget in frame.winfo_children():
+        widget.destroy()
+
+    frame.grid_rowconfigure(3, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+    frame.frame_resultado = None
+
+    # Título
     ctk.CTkLabel(
         frame,
         text="🚛 Caçambas Alugadas (Ativas)",
         font=("Segoe UI", 22, "bold")
     ).grid(row=0, column=0, pady=(20, 10), sticky="n")
 
+    # 🔍 Campo de busca
+    busca_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    busca_frame.grid(row=1, column=0, pady=(0, 5), sticky="ew")
+
+    entry_identificacao = ctk.CTkEntry(
+        busca_frame,
+        placeholder_text="🔍 Digite a identificação da caçamba",
+        width=280
+    )
+    entry_identificacao.grid(row=0, column=0, padx=(0, 10))
+
+    def filtrar_por_cacamba():
+        identificacao = entry_identificacao.get()
+        for linha in corpo.winfo_children():
+            linha.destroy()
+
+        with SessionLocal() as db:
+            alugueis_filtrados = (
+                db.query(Aluguel)
+                .join(Cacamba)  # ✅ Resolve o problema
+                .options(joinedload(Aluguel.cliente), joinedload(Aluguel.cacamba))
+                .filter(Aluguel.encerrado == False)
+                .filter(Cacamba.identificacao.like(f"%{identificacao}%"))
+                .order_by(Aluguel.data_inicio.desc())
+                .all()
+            )
+
+        if not alugueis_filtrados:
+            ctk.CTkLabel(
+                corpo,
+                text="⚠️ Nenhuma caçamba encontrada com essa identificação.",
+                font=("Segoe UI", 13)
+            ).grid(row=0, column=0, pady=10)
+            return
+
+        for idx, aluguel in enumerate(alugueis_filtrados):
+            nome = aluguel.cliente.nome if aluguel.cliente else "—"
+            id_cacamba = aluguel.cacamba.identificacao if aluguel.cacamba else "—"
+            inicio = aluguel.data_inicio.strftime("%d/%m/%Y")
+            fim = aluguel.data_fim.strftime("%d/%m/%Y")
+            endereco = aluguel.endereco_obra or "—"
+            pago = "✅" if aluguel.pago else "❌"
+            btn_texto = "💰" if not aluguel.pago else "↩️"
+            btn_cor = "#10B981" if not aluguel.pago else "#F59E0B"
+            btn_hover = "#059669" if not aluguel.pago else "#D97706"
+
+            dados = [str(aluguel.id), nome, id_cacamba, inicio, fim, endereco, pago]
+
+            linha = ctk.CTkFrame(corpo, fg_color="#ffffff" if idx % 2 == 0 else "#f1f1f1")
+            linha.grid(row=idx, column=0, sticky="ew", padx=0, pady=0)
+
+            for i, (valor, largura) in enumerate(zip(dados, larguras)):
+                ctk.CTkLabel(
+                    linha,
+                    text=valor,
+                    width=largura,
+                    anchor="center",
+                    font=("Segoe UI", 11)
+                ).grid(row=0, column=i, padx=1, pady=1)
+
+            ctk.CTkButton(
+                linha,
+                text=btn_texto,
+                font=("Segoe UI", 10),
+                width=larguras[-1],
+                height=26,
+                fg_color=btn_cor,
+                hover_color=btn_hover,
+                command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)
+            ).grid(row=0, column=len(dados), padx=2, pady=2)
+
+    ctk.CTkButton(
+        busca_frame,
+        text="🔍 Buscar",
+        fg_color="#1D4ED8",
+        hover_color="#1E40AF",
+        command=filtrar_por_cacamba
+    ).grid(row=0, column=1)
+
+    # Cabeçalho
     colunas = ["ID", "Cliente", "Caçamba", "Início", "Fim", "Endereço", "Pago", "Ação"]
     larguras = [50, 160, 80, 90, 90, 300, 60, 60]
 
-    # Cabeçalho
     cabecalho = ctk.CTkFrame(frame, fg_color="#dddddd")
-    cabecalho.grid(row=1, column=0, sticky="ew", padx=10)
+    cabecalho.grid(row=2, column=0, sticky="ew", padx=10)
     for i, (titulo, largura) in enumerate(zip(colunas, larguras)):
         ctk.CTkLabel(
             cabecalho,
@@ -146,55 +280,14 @@ def mostrar_apenas_cacambas_alugadas(frame: ctk.CTkFrame):
             width=largura,
             anchor="center",
             font=("Segoe UI", 12, "bold")
-        ).grid(row=0, column=i, padx=2, pady=6)
+        ).grid(row=0, column=i, padx=2, pady=3)
 
     corpo = ctk.CTkScrollableFrame(frame)
-    corpo.grid(row=2, column=0, sticky="nsew", padx=10, pady=(5, 20))
+    corpo.grid(row=3, column=0, sticky="nsew", padx=10, pady=(2, 20))
     corpo.grid_columnconfigure(0, weight=1)
 
-    if not alugueis_ativos:
-        ctk.CTkLabel(
-            corpo,
-            text="⚠️ Nenhuma caçamba está alugada.",
-            font=("Segoe UI", 13)
-        ).grid(row=0, column=0, pady=20)
-        return
-
-    for idx, aluguel in enumerate(alugueis_ativos):
-        nome = aluguel.cliente.nome if aluguel.cliente else "—"
-        id_cacamba = aluguel.cacamba.identificacao if aluguel.cacamba else "—"
-        inicio = aluguel.data_inicio.strftime("%d/%m/%Y")
-        fim = aluguel.data_fim.strftime("%d/%m/%Y")
-        endereco = aluguel.endereco_obra or "—"
-        pago = "✅" if aluguel.pago else "❌"
-        btn_texto = "💰" if not aluguel.pago else "↩️"
-        btn_cor = "#10B981" if not aluguel.pago else "#F59E0B"
-        btn_hover = "#059669" if not aluguel.pago else "#D97706"
-
-        dados = [str(aluguel.id), nome, id_cacamba, inicio, fim, endereco, pago]
-
-        linha = ctk.CTkFrame(corpo, fg_color="#ffffff" if idx % 2 == 0 else "#f1f1f1")
-        linha.grid(row=idx, column=0, sticky="ew", padx=2, pady=1)
-
-        for i, (valor, largura) in enumerate(zip(dados, larguras)):
-            ctk.CTkLabel(
-                linha,
-                text=valor,
-                width=largura,
-                anchor="center",
-                font=("Segoe UI", 11)
-            ).grid(row=0, column=i, padx=2, pady=4)
-
-        ctk.CTkButton(
-            linha,
-            text=btn_texto,
-            font=("Segoe UI", 10),
-            width=larguras[-1],
-            height=26,
-            fg_color=btn_cor,
-            hover_color=btn_hover,
-            command=lambda a_id=aluguel.id, f=frame: alternar_status_pagamento(a_id, f)
-        ).grid(row=0, column=len(dados), padx=2, pady=4)
+    # Carregar todos inicialmente
+    filtrar_por_cacamba()
 
 
 def ir_para_cacambas_alugadas():
