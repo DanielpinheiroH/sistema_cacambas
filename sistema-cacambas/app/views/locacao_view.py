@@ -3,7 +3,6 @@ from tkinter import messagebox
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
-
 from app.database import SessionLocal
 from app.models import Cliente, Cacamba, Aluguel
 from reportlab.pdfgen import canvas
